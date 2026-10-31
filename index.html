@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#8a1538">
+<title>MAS Consultant Register</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+
+/* Layout: maroon masthead, coloured KPI tiles, sector filter, two chart panels, then working lists. Sectors carry the categorical colours (fixed order); item types use a maroon ramp; late / due soon / done use reserved status colours. */
+:root{
+  --bg:#f3f4f7; --surface:#ffffff; --ink:#1b2230; --muted:#5b6475; --line:#e0e4ec; --soft:#eef1f6;
+  --brand:#8a1538; --brand-2:#5e0e26; --brand-ink:#ffffff; --brand-soft:#f7e6ec;
+  --k-del:#8a1538; --k-act:#cf7f98; --k-wait:#64748b; --k-wait-soft:#eceff4;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#008300; --s7:#6250d6; --s8:#e34948;
+  --late:#d03b3b; --late-soft:#fbe6e6; --late-ink:#a42525;
+  --soon:#fab219; --soon-soft:#fff3d6; --soon-ink:#8a5a00;
+  --good:#0ca30c; --good-soft:#e2f5e2; --good-ink:#0b6e0b;
+  --neutral:#b9c0cc; --grid:#e8ebf1;
+  --f-display:"Instrument Serif",Georgia,serif; --f-body:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111419; --surface:#1a1e26; --ink:#e9ecf2; --muted:#9ba4b4; --line:#2b313c; --soft:#222834;
+  --brand:#a8234d; --brand-2:#6d1630; --brand-ink:#ffffff; --brand-soft:#3a1c27;
+  --k-del:#e0738f; --k-act:#8f4a60; --k-wait:#8a97ab; --k-wait-soft:#232a35;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767;
+  --late:#e66767; --late-soft:#3b1d1d; --late-ink:#f29a9a;
+  --soon:#fab219; --soon-soft:#3a2d12; --soon-ink:#f5c860;
+  --good:#3fbf3f; --good-soft:#163019; --good-ink:#7fd97f;
+  --neutral:#4a5260; --grid:#262c36; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111419; --surface:#1a1e26; --ink:#e9ecf2; --muted:#9ba4b4; --line:#2b313c; --soft:#222834;
+  --brand:#a8234d; --brand-2:#6d1630; --brand-ink:#ffffff; --brand-soft:#3a1c27;
+  --k-del:#e0738f; --k-act:#8f4a60; --k-wait:#8a97ab; --k-wait-soft:#232a35;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767;
+  --late:#e66767; --late-soft:#3b1d1d; --late-ink:#f29a9a;
+  --soon:#fab219; --soon-soft:#3a2d12; --soon-ink:#f5c860;
+  --good:#3fbf3f; --good-soft:#163019; --good-ink:#7fd97f;
+  --neutral:#4a5260; --grid:#262c36; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14.5px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--brand-2)}
+.mast{background:linear-gradient(120deg,var(--brand-2),var(--brand));color:var(--brand-ink)}
+.inner{max-width:1200px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.mast .inner{padding-block:22px 18px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px}
+.mast .sub{opacity:.82;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase}
+h1{font-family:var(--f-display);font-weight:400;font-size:2.3rem;line-height:1.05;margin:2px 0 0;text-wrap:balance}
+.mast .date{font-family:var(--f-mono);font-size:.85rem;opacity:.9}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+main.inner{padding-block:18px 56px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:-34px;position:relative}
+.kpi{border:0;border-radius:12px;padding:14px 16px;text-align:left;font:inherit;cursor:pointer;display:flex;flex-direction:column;gap:2px;box-shadow:0 1px 2px rgba(0,0,0,.06),0 6px 18px rgba(20,25,40,.08);background:var(--surface);color:var(--ink);border-top:4px solid var(--c)}
+.kpi b{font-family:var(--f-mono);font-size:2rem;font-weight:500;line-height:1.1;color:var(--ci)}
+.kpi span{font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.kpi small{color:var(--muted);font-size:.8rem}
+.kpi.late{--c:var(--late);--ci:var(--late-ink);background:linear-gradient(180deg,var(--late-soft),var(--surface) 70%)}
+.kpi.soon{--c:var(--soon);--ci:var(--soon-ink);background:linear-gradient(180deg,var(--soon-soft),var(--surface) 70%)}
+.kpi.wait{--c:var(--k-wait);--ci:var(--k-wait);background:linear-gradient(180deg,var(--k-wait-soft),var(--surface) 70%)}
+.kpi.nod{--c:var(--s1);--ci:var(--s1);background:linear-gradient(180deg,var(--soft),var(--surface) 70%)}
+.kpi.proj{--c:var(--brand);--ci:var(--brand);background:linear-gradient(180deg,var(--brand-soft),var(--surface) 70%)}
+nav.tabs{display:flex;gap:6px;margin:22px 0 12px;overflow-x:auto}
+nav.tabs a{padding:7px 16px;border-radius:999px;color:var(--muted);text-decoration:none;font-weight:600;white-space:nowrap;background:var(--surface);border:1px solid var(--line)}
+nav.tabs a[aria-current="page"]{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+.filters .lbl{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;margin-right:4px}
+.fchip{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-size:.84rem;cursor:pointer}
+.fchip i{width:9px;height:9px;border-radius:50%;background:var(--sc,var(--neutral))}
+.fchip .c{font-family:var(--f-mono);font-size:.75rem;color:var(--muted)}
+.fchip[aria-pressed="true"]{border-color:var(--sc,var(--brand));box-shadow:inset 0 0 0 1px var(--sc,var(--brand));font-weight:600}
+.panels{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:14px}
+@media (max-width:900px){.panels{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;min-width:0}
+.panel h3{margin:0 0 2px;font-size:1rem;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.panel .hint{color:var(--muted);font-size:.82rem;margin-bottom:10px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.seg button{border:0;border-radius:0;padding:3px 10px;font-size:.78rem;background:var(--surface)}
+.seg button[aria-pressed="true"]{background:var(--brand);color:var(--brand-ink)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:.8rem;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.tl{width:100%;overflow-x:auto}
+.tl svg{display:block;width:100%;min-width:560px;height:auto}
+.tl text{fill:var(--muted);font-family:var(--f-mono);font-size:11px}
+.load{display:flex;flex-direction:column;gap:7px}
+.lrow{display:grid;grid-template-columns:var(--lw,44px) minmax(0,1fr) 40px;gap:8px;align-items:center;font-size:.82rem}
+.lrow .bar{display:flex;gap:2px;height:14px}
+.lrow .bar span{display:block;height:100%;border-radius:2px}
+.lrow .bar span:first-child{border-radius:4px 2px 2px 4px}
+.lrow .bar span:last-child{border-radius:2px 4px 4px 2px}
+.lrow .bar span:only-child{border-radius:4px}
+.lrow .v{text-align:right;color:var(--ink)}
+.stbar{display:flex;gap:2px;height:22px;margin:6px 0 4px}
+.stbar span{display:flex;align-items:center;justify-content:center;color:#fff;font-size:.75rem;font-weight:600;font-family:var(--f-mono);min-width:0;overflow:hidden}
+.stbar span:first-child{border-radius:6px 2px 2px 6px}.stbar span:last-child{border-radius:2px 6px 6px 2px}
+h2{font-size:.8rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:24px 0 8px;font-weight:700;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+h2 .dot{width:10px;height:10px;border-radius:50%;background:var(--c,var(--muted))}
+h2 .n{font-family:var(--f-mono);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:0 8px;color:var(--ink)}
+.sechead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:22px 0 8px;padding:8px 12px;border-radius:10px;background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--sc)}
+.sechead b{font-size:1rem}
+.list{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.row{display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 14px 10px 12px;border-top:1px solid var(--line);border-left:4px solid var(--stripe,transparent)}
+.row:first-child{border-top:0}
+.row.u-late{--stripe:var(--late)} .row.u-soon{--stripe:var(--soon)} .row.u-wait{--stripe:var(--k-wait)} .row.u-done{--stripe:var(--good);opacity:.72}
+.row .t{min-width:0}
+.row .title{font-weight:500}
+.row .meta{font-size:.82rem;color:var(--muted)}
+.editrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;padding:12px;border-top:1px solid var(--line);background:var(--soft);border-left:4px solid var(--brand)}
+.editrow label{display:flex;flex-direction:column;gap:2px;font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.editrow label.wide{grid-column:1/-1}
+.editrow input,.editrow select{text-transform:none;letter-spacing:0;font-weight:400}
+.editrow .btns{grid-column:1/-1;display:flex;gap:8px}
+.empty{padding:14px;color:var(--muted);font-size:.9rem}
+.chip{display:inline-block;font-family:var(--f-mono);font-size:.76rem;padding:2px 8px;border-radius:999px;background:var(--soft);color:var(--ink);white-space:nowrap}
+.chip.late{background:var(--late-soft);color:var(--late-ink)} .chip.soon{background:var(--soon-soft);color:var(--soon-ink)} .chip.ok{background:var(--good-soft);color:var(--good-ink)} .chip.wait{background:var(--k-wait-soft);color:var(--k-wait)} .chip.brand{background:var(--brand-soft);color:var(--brand)}
+.sec{display:inline-flex;align-items:center;gap:5px;font-size:.76rem;padding:1px 8px;border-radius:999px;border:1px solid var(--line);color:var(--ink);white-space:nowrap}
+.sec::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--sc,var(--neutral))}
+.kind{display:inline-flex;align-items:center;gap:5px;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-right:6px}
+.kind::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--kc)}
+.kind.deliverable{--kc:var(--k-del)} .kind.action{--kc:var(--k-act)} .kind.waiting{--kc:var(--k-wait)}
+select,input,textarea,button{font:inherit;color:var(--ink)}
+select,input,textarea{background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:5px 8px;min-width:0}
+select.st-todo{border-color:var(--neutral)} select.st-doing{border-color:var(--s1);color:var(--s1)} select.st-blocked{border-color:var(--late);color:var(--late-ink)} select.st-done{border-color:var(--good);color:var(--good-ink)}
+textarea{width:100%;resize:vertical}
+button{background:var(--soft);border:1px solid var(--line);border-radius:7px;padding:5px 12px;cursor:pointer}
+button.primary{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+button.link{background:none;border:0;color:var(--muted);padding:0 4px}
+button.danger{color:var(--late-ink);border-color:var(--late)}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.proj{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--pc,var(--neutral));border-radius:12px;margin-bottom:10px}
+.proj.s-active{--pc:var(--good)} .proj.s-waiting{--pc:var(--k-wait)} .proj.s-planned{--pc:var(--s1)} .proj.s-closed{--pc:var(--neutral)}
+.proj > summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 14px}
+.proj > summary::-webkit-details-marker{display:none}
+.proj[open] > summary{border-bottom:1px solid var(--line)}
+.proj .name{font-weight:600}
+.proj .next{font-size:.86rem;color:var(--muted)}
+.proj .next b{color:var(--ink);font-weight:500}
+.prog{height:6px;border-radius:3px;background:var(--soft);overflow:hidden;margin-top:6px;max-width:320px}
+.prog span{display:block;height:100%;background:var(--good);border-radius:3px}
+.pstat{font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--pc)}
+.pbody{padding:12px 14px;display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:18px}
+@media (max-width:820px){.pbody{grid-template-columns:1fr}}
+.fields{display:grid;grid-template-columns:110px minmax(0,1fr);gap:6px 10px;align-items:center;font-size:.88rem}
+.fields label{color:var(--muted)}
+.fields input,.fields select{width:100%}
+form.add{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;padding:10px;background:var(--soft);border-radius:10px}
+form.add input[name=title]{flex:1 1 200px}
+.log{font-size:.88rem;border-left:3px solid var(--brand-soft);padding-left:10px;margin:8px 0;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px}
+.log .d{font-family:var(--f-mono);font-size:.76rem;color:var(--brand)}
+.banner{padding:10px 14px;border-radius:10px;background:var(--soon-soft);color:var(--soon-ink);margin:12px 0;font-size:.9rem}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.review{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--rc);border-radius:12px;padding:12px 16px;font-size:.9rem;margin-bottom:14px}
+.review b{font-family:var(--f-mono)}
+.small{font-size:.8rem;color:var(--muted)}
+.qlinks{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px}
+.qlinks .lbl{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;margin-right:2px}
+.qlink{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:var(--surface);border:1px solid var(--line);color:var(--brand);font-weight:600;text-decoration:none;font-size:.88rem}
+.qlink:hover{border-color:var(--brand)}
+.qlinks form{display:flex;flex-wrap:wrap;gap:6px}
+#tip{position:fixed;z-index:20;pointer-events:none;background:var(--ink);color:var(--bg);font-size:.8rem;padding:6px 9px;border-radius:7px;max-width:280px;box-shadow:0 4px 14px rgba(0,0,0,.2)}
+@media (max-width:560px){.row{grid-template-columns:1fr}.row .actions{justify-content:flex-start}.proj > summary{grid-template-columns:1fr}h1{font-size:1.9rem}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+
+.mast .tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.mast .tools button{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:999px;padding:5px 12px;font-size:.82rem}
+#login{position:fixed;inset:0;z-index:30;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px}
+#login form{background:var(--surface);border:1px solid var(--line);border-top:5px solid var(--brand);border-radius:14px;padding:24px;display:flex;flex-direction:column;gap:12px;width:min(380px,100%)}
+#login h2{margin:0;font-family:var(--f-display);font-weight:400;font-size:1.8rem;text-transform:none;letter-spacing:0;color:var(--ink)}
+#login label{display:flex;flex-direction:column;gap:4px;font-size:.85rem;color:var(--muted)}
+#login input{padding:9px 10px;font-size:1rem}
+#login .err{color:var(--late-ink);font-size:.88rem;min-height:1.2em}
+</style>
+</head>
+<body>
+
+
+<header class="mast"><div class="inner">
+  <div>
+    <div class="sub">MAS Women Sport Center · MAS Sports Academy</div>
+    <h1>Consultant Register</h1>
+  </div>
+  <div class="tools"><span class="date" id="today"></span><button type="button" id="fsBtn">Full screen</button><button type="button" id="outBtn">Sign out</button></div>
+</div></header>
+
+<main class="inner">
+  <div class="kpis" id="strip"></div>
+  <div class="qlinks" id="qlinks"></div>
+  <div id="note" hidden class="banner"></div>
+  <nav class="tabs" aria-label="Views">
+    <a href="#focus" data-v="focus">Dashboard</a>
+    <a href="#sectors" data-v="sectors">Sectors</a>
+    <a href="#projects" data-v="projects">Projects</a>
+    <a href="#journal" data-v="journal">Journal</a>
+  </nav>
+  <div id="view"><div class="list"><div class="empty">Loading the register. Projects, deadlines and notes appear here once the data arrives.</div></div></div>
+</main>
+<datalist id="sectorlist"></datalist>
+<div id="tip" hidden></div>
+<div id="login" hidden><form id="loginForm"><h2>Consultant Register</h2><span class="small">Sign in to open your register.</span><label for="lgEmail">Email<input id="lgEmail" type="email" autocomplete="username" required></label><label for="lgPass">Password<input id="lgPass" type="password" autocomplete="current-password" required></label><div class="err" id="lgErr"></div><button class="primary" id="lgBtn">Sign in</button></form></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
+<script>
+/* ===== SETTINGS: paste your Supabase project URL and anon (legacy JWT) key here ===== */
+const SUPABASE_URL="https://gznrwfokvxozhpnnraic.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd6bnJ3Zm9rdnhvemhwbm5yYWljIiwicm9sZSI6ImFub24iLCJpYXQiOj";
+/* ================================================================================ */
+const S={links:[],qedit:false,projects:[],items:[],log:[],meta:{},ready:0,open:new Set(),confirm:null,edit:null,jf:"",sec:"",lv:"sector"};
+let db=null;
+const $=s=>document.querySelector(s);
+const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad=n=>String(n).padStart(2,"0");
+const iso=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const TODAY=iso(new Date());
+const addDays=(s,n)=>{const d=new Date(s+"T00:00:00");d.setDate(d.getDate()+n);return iso(d)};
+const diff=(a,b)=>Math.round((new Date(a+"T00:00:00")-new Date(b+"T00:00:00"))/864e5);
+const fmt=s=>s?new Date(s+"T00:00:00").toLocaleDateString("en-GB",{day:"2-digit",month:"short"}):"";
+const KIND={deliverable:"Deliverable",action:"Action",waiting:"Waiting for"};
+const KC={deliverable:"var(--k-del)",action:"var(--k-act)",waiting:"var(--k-wait)"};
+const ISTAT={todo:"To do",doing:"In progress",blocked:"Blocked",done:"Done"};
+const PSTAT={active:"Active",waiting:"Waiting",planned:"Planned",closed:"Closed"};
+/* Sectors in fixed order; each keeps its colour whatever the filter. */
+const SECTORS=["Recruitment","Training","Facilities","PATHWAY operations","Governance & Strategy","Partnerships","Digital systems","Health & Safeguarding","Administration"];
+const secColor=s=>{const k=SECTORS.indexOf(s);return k<0||k>7?"var(--neutral)":`var(--s${k+1})`};
+const proj=id=>S.projects.find(p=>p.id===id)||{code:"?",name:"Unknown project"};
+const secOf=i=>i.sector||proj(i.project).sector||"Unassigned";
+const allSectors=()=>{const x=new Set(SECTORS);S.items.forEach(i=>x.add(secOf(i)));S.projects.forEach(p=>p.sector&&x.add(p.sector));return [...x]};
+const open=i=>i.status!=="done";
+const fil=items=>S.sec?items.filter(i=>secOf(i)===S.sec):items;
+const secChip=s=>`<span class="sec" style="--sc:${secColor(s)}">${esc(s)}</span>`;
+
+function urg(i){
+  if(!open(i))return"done";
+  if(i.kind==="waiting")return"wait";
+  if(!i.due)return"";
+  const d=diff(i.due,TODAY);return d<0?"late":d<=14?"soon":"";
+}
+function dueChip(i){
+  if(i.kind==="waiting"&&open(i)){const d=i.since?diff(TODAY,i.since):null;return `<span class="chip wait">${d==null?"waiting":d+" days"}</span>`}
+  if(!i.due)return `<span class="chip">no date</span>`;
+  const u=urg(i);
+  return `<span class="chip ${u==="done"?"ok":u}">${u==="late"?"⚠ ":u==="done"?"✓ ":""}${fmt(i.due)}</span>`;
+}
+function editRow(i){
+  return `<form class="editrow" data-form="edit" data-id="${i.id}">
+    <label class="wide">Title<input name="title" id="e-title-${i.id}" value="${esc(i.title)}" required></label>
+    <label>Type<select name="kind" id="e-kind-${i.id}">${Object.entries(KIND).map(([k,v])=>`<option value="${k}"${i.kind===k?" selected":""}>${v}</option>`).join("")}</select></label>
+    <label>Sector<input name="sector" id="e-sec-${i.id}" list="sectorlist" value="${esc(secOf(i)==="Unassigned"?"":secOf(i))}"></label>
+    <label>Project<select name="project" id="e-proj-${i.id}">${S.projects.map(p=>`<option value="${p.id}"${i.project===p.id?" selected":""}>${esc(p.code)} ${esc(p.name)}</option>`).join("")}</select></label>
+    <label>Due date<input type="date" name="due" id="e-due-${i.id}" value="${esc(i.due||"")}"></label>
+    <label>Who<input name="who" id="e-who-${i.id}" value="${esc(i.who||"")}"></label>
+    ${i.kind==="waiting"?`<label>Waiting since<input type="date" name="since" id="e-since-${i.id}" value="${esc(i.since||"")}"></label>`:""}
+    <label>Document<input name="doc" id="e-doc-${i.id}" value="${esc(i.doc||"")}"></label>
+    <label class="wide">Note<input name="note" id="e-note-${i.id}" value="${esc(i.note||"")}"></label>
+    <div class="btns"><button class="primary">Save changes</button><button type="button" data-act="cancel">Cancel</button></div>
+  </form>`;
+}
+function itemRow(i,showProj){
+  if(S.edit===i.id)return editRow(i);
+  const p=proj(i.project);
+  const meta=[secChip(secOf(i)),
+    showProj?`<span class="chip brand" data-tip="${esc("Project "+p.code+"\n"+p.name)}">${esc(p.code)}</span>`:"",
+    i.kind==="waiting"&&i.who?"from "+esc(i.who):(i.who?esc(i.who):""),
+    i.doc?(/^https:\/\//.test(i.doc)?`<a href="${esc(i.doc)}" target="_blank" rel="noopener" style="color:var(--brand);font-weight:600">Open document ↗</a>`:`<span class="mono">${esc(i.doc)}</span>`):"",
+    i.note?esc(i.note):""].filter(Boolean).join(" · ");
+  const del=S.confirm===i.id?`<button class="danger" data-act="del" data-id="${i.id}">Confirm delete</button><button data-act="cancel">Keep</button>`:`<button class="link" data-act="askdel" data-id="${i.id}" aria-label="Delete item">Delete</button>`;
+  return `<div class="row u-${urg(i)}">
+    <div>${dueChip(i)}</div>
+    <div class="t"><div><span class="kind ${i.kind}">${KIND[i.kind]||""}</span></div><div class="title">${esc(i.title)}</div><div class="meta">${meta}</div></div>
+    <div class="actions">
+      <input type="date" id="due-${i.id}" value="${esc(i.due||"")}" data-act="due" data-id="${i.id}" aria-label="Due date">
+      <select id="st-${i.id}" class="st-${i.status}" data-act="status" data-id="${i.id}" aria-label="Status">${Object.entries(ISTAT).map(([k,v])=>`<option value="${k}"${i.status===k?" selected":""}>${v}</option>`).join("")}</select>
+      <button data-act="edit" data-id="${i.id}">Edit</button>
+      ${del}
+    </div></div>`;
+}
+const list=(items,showProj,emptyText)=>`<div class="list">${items.length?items.map(i=>itemRow(i,showProj)).join(""):`<div class="empty">${emptyText}</div>`}</div>`;
+const byDue=(a,b)=>(a.due||"9999").localeCompare(b.due||"9999");
+const URANK={late:0,soon:1,"":2,wait:3,done:4};
+const byUrg=(a,b)=>URANK[urg(a)]-URANK[urg(b)]||byDue(a,b);
+
+function sets(){
+  const o=fil(S.items.filter(open));
+  return {
+    late:o.filter(i=>i.kind!=="waiting"&&i.due&&i.due<TODAY).sort(byDue),
+    soon:o.filter(i=>i.kind!=="waiting"&&i.due&&i.due>=TODAY&&i.due<=addDays(TODAY,14)).sort(byDue),
+    wait:o.filter(i=>i.kind==="waiting").sort((a,b)=>(a.since||"9999").localeCompare(b.since||"9999")),
+    nodate:o.filter(i=>i.kind!=="waiting"&&!i.due),
+    later:o.filter(i=>i.kind!=="waiting"&&i.due&&i.due>addDays(TODAY,14)).sort(byDue)
+  };
+}
+function renderLinks(){
+  const L=S.links||[];
+  $("#qlinks").innerHTML=`<span class="lbl">Quick links</span>${L.map((l,k)=>`<a class="qlink" href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.name)} ↗</a>${S.qedit?`<button class="link" data-act="qdel" data-k="${k}" aria-label="Remove ${esc(l.name)}">×</button>`:""}`).join("")}
+  ${S.qedit?`<form data-form="qadd"><input name="name" id="q-name" placeholder="Name" required><input name="url" id="q-url" placeholder="https://claude.ai/artifact/..." required><button class="primary">Add link</button><button type="button" data-act="qedit">Done</button></form>`:`<button class="link" data-act="qedit">Edit links</button>`}`;
+}
+function renderStrip(){
+  const s=sets(),oldest=s.wait.filter(i=>i.since).map(i=>diff(TODAY,i.since));
+  const ps=S.projects.filter(p=>p.status!=="closed");
+  $("#strip").innerHTML=`
+   <button class="kpi late" data-go="focus" data-scroll="late"><span>Overdue</span><b>${s.late.length}</b><small>${s.late.length?"act today":"nothing late"}</small></button>
+   <button class="kpi soon" data-go="focus" data-scroll="soon"><span>Due in 14 days</span><b>${s.soon.length}</b><small>${s.soon[0]?"next: "+fmt(s.soon[0].due):"clear fortnight"}</small></button>
+   <button class="kpi wait" data-go="focus" data-scroll="wait"><span>Waiting for others</span><b>${s.wait.length}</b><small>${oldest.length?"oldest: "+Math.max(...oldest)+" days":"no start dates"}</small></button>
+   <button class="kpi nod" data-go="focus" data-scroll="nodate"><span>Open, no date</span><b>${s.nodate.length}</b><small>set a deadline</small></button>
+   <button class="kpi proj" data-go="projects"><span>Open projects</span><b>${ps.length}</b><small>${ps.filter(p=>p.status==="waiting").length} waiting on others</small></button>`;
+}
+function filters(){
+  const o=S.items.filter(open);
+  const chips=allSectors().map(s=>{const n=o.filter(i=>secOf(i)===s).length;return n||S.sec===s?`<button class="fchip" style="--sc:${secColor(s)}" data-act="sec" data-s="${esc(s)}" aria-pressed="${S.sec===s}"><i></i>${esc(s)}<span class="c">${n}</span></button>`:""}).join("");
+  return `<div class="filters"><span class="lbl">Sector</span><button class="fchip" data-act="sec" data-s="" aria-pressed="${!S.sec}">All<span class="c">${o.length}</span></button>${chips}</div>`;
+}
+
+/* Timeline: open dated items from 7 days ago to 60 days ahead, dots coloured by sector. */
+function timeline(){
+  const W=1000,H=150,L=40,R=20,start=addDays(TODAY,-7),end=addDays(TODAY,60),span=diff(end,start);
+  const x=d=>L+(Math.max(0,Math.min(span,diff(d,start)))/span)*(W-L-R);
+  const items=fil(S.items.filter(i=>open(i)&&i.kind!=="waiting"&&i.due&&i.due<=end)).sort(byDue);
+  let g="";
+  for(let k=0;k<=span;k++){const d=addDays(start,k);if(d.endsWith("-01")||k===0){const xx=x(d);g+=`<line x1="${xx}" x2="${xx}" y1="20" y2="${H-24}" stroke="var(--grid)" stroke-width="1"/><text x="${xx+4}" y="${H-8}">${new Date(d+"T00:00:00").toLocaleDateString("en-GB",{month:"short"})}</text>`}}
+  const tx=x(TODAY);
+  g+=`<rect x="${L}" y="20" width="${tx-L}" height="${H-44}" fill="var(--late-soft)" opacity=".6"/>`;
+  g+=`<line x1="${L}" x2="${W-R}" y1="${H-24}" y2="${H-24}" stroke="var(--line)" stroke-width="1"/>`;
+  g+=`<line x1="${tx}" x2="${tx}" y1="14" y2="${H-24}" stroke="var(--brand)" stroke-width="2"/><text x="${tx+4}" y="14" style="fill:var(--brand);font-weight:500">Today</text>`;
+  const stack={},used=new Set();
+  items.forEach(i=>{
+    const key=Math.round(x(i.due)/14);stack[key]=(stack[key]||0)+1;
+    const cx=x(i.due),cy=H-24-12-(stack[key]-1)*18,p=proj(i.project);used.add(secOf(i));
+    const tip=`${p.code} · ${secOf(i)}\n${i.title}\nDue ${fmt(i.due)}${i.due<TODAY?" (late)":""}`;
+    g+=`<circle cx="${cx}" cy="${cy}" r="7" fill="${secColor(secOf(i))}" stroke="var(--surface)" stroke-width="2" data-tip="${esc(tip)}"/>`;
+    if(stack[key]===1)g+=`<text x="${cx}" y="${cy-11}" text-anchor="middle" style="fill:var(--ink)">${esc(p.code)}</text>`;
+  });
+  return `<div class="panel"><h3>Deadlines, next 60 days</h3><div class="hint">${items.length} open dated items. Red zone = past due. Hover a dot for details.</div>
+   <div class="tl"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Timeline of ${items.length} open deadlines">${g}</svg></div>
+   <div class="legend">${[...used].map(s=>`<span><i style="background:${secColor(s)}"></i>${esc(s)}</span>`).join("")}</div></div>`;
+}
+/* Load: open items by sector (one colour each) or by project (stacked by type); status bar underneath. */
+function loadPanel(){
+  const o=fil(S.items.filter(open));
+  let rows,bars,legend;
+  if(S.lv==="sector"){
+    rows=allSectors().map(s=>{const it=o.filter(i=>secOf(i)===s);return {s,n:it.length,late:it.filter(i=>urg(i)==="late").length}}).filter(r=>r.n).sort((a,b)=>b.n-a.n);
+    const max=Math.max(1,...rows.map(r=>r.n));
+    bars=rows.map(r=>`<div class="lrow" style="--lw:180px" data-tip="${esc(r.s+"\n"+r.n+" open"+(r.late?", "+r.late+" late":""))}">${secChip(r.s)}
+      <div class="bar" style="width:${(r.n/max*100).toFixed(1)}%"><span style="flex:1;background:${secColor(r.s)}"></span></div>
+      <span class="v mono">${r.n}${r.late?` <span style="color:var(--late-ink)">⚠</span>`:""}</span></div>`).join("");
+    legend="";
+  }else{
+    rows=S.projects.filter(p=>p.status!=="closed").map(p=>{const it=o.filter(i=>i.project===p.id);
+      return {p,n:it.length,late:it.filter(i=>urg(i)==="late").length,c:{deliverable:it.filter(i=>i.kind==="deliverable").length,action:it.filter(i=>i.kind==="action").length,waiting:it.filter(i=>i.kind==="waiting").length}}}).filter(r=>r.n).sort((a,b)=>b.n-a.n);
+    const max=Math.max(1,...rows.map(r=>r.n));
+    bars=rows.map(r=>`<div class="lrow" data-tip="${esc(r.p.code+" · "+r.p.name+"\n"+r.c.deliverable+" deliverables, "+r.c.action+" actions, "+r.c.waiting+" waiting"+(r.late?"\n"+r.late+" late":""))}">
+      <span class="chip brand">${esc(r.p.code)}</span>
+      <div class="bar" style="width:${(r.n/max*100).toFixed(1)}%">${["deliverable","action","waiting"].filter(k=>r.c[k]).map(k=>`<span style="flex:${r.c[k]};background:${KC[k]}"></span>`).join("")}</div>
+      <span class="v mono">${r.n}${r.late?` <span style="color:var(--late-ink)">⚠</span>`:""}</span></div>`).join("");
+    legend=`<div class="legend"><span><i style="background:var(--k-del)"></i>Deliverable</span><span><i style="background:var(--k-act)"></i>Action</span><span><i style="background:var(--k-wait)"></i>Waiting for</span></div>`;
+  }
+  const all=fil(S.items),st={todo:0,doing:0,blocked:0,done:0};all.forEach(i=>st[i.status]=(st[i.status]||0)+1);
+  const tot=all.length||1,SCOL={todo:"var(--neutral)",doing:"var(--s1)",blocked:"var(--late)",done:"var(--good)"};
+  const sb=Object.keys(st).filter(k=>st[k]).map(k=>`<span style="flex:${st[k]};background:${SCOL[k]}" data-tip="${ISTAT[k]}: ${st[k]}">${st[k]/tot>.07?st[k]:""}</span>`).join("");
+  return `<div class="panel"><h3>Open items <span class="seg"><button data-act="lv" data-v="sector" aria-pressed="${S.lv==="sector"}">By sector</button><button data-act="lv" data-v="project" aria-pressed="${S.lv==="project"}">By project</button></span></h3>
+   <div class="hint">Longest bars carry the most work. ⚠ marks late items.</div>
+   <div class="load">${bars||`<div class="empty">No open items.</div>`}</div>${legend}
+   <h3 style="margin-top:16px">All items by status</h3>
+   <div class="stbar">${sb}</div>
+   <div class="legend">${Object.keys(st).map(k=>`<span><i style="background:${SCOL[k]}"></i>${ISTAT[k]} ${st[k]}</span>`).join("")}</div></div>`;
+}
+function renderFocus(){
+  const s=sets(),rv=S.meta.lastReview,days=rv?diff(TODAY,rv):null;
+  const rc=days==null||days>7?"var(--soon)":"var(--good)";
+  return `<div class="review" style="--rc:${rc}"><div>Weekly review: ${rv?`last done <b>${fmt(rv)}</b>, ${days} days ago`:"<b>not done yet</b>"}. For each project, check the next action, what you are waiting for and what is late.</div>
+    <button class="primary" data-act="review">Mark review done today</button></div>
+  ${filters()}
+  <div class="panels">${timeline()}${loadPanel()}</div>
+  <h2 id="late" style="--c:var(--late)"><span class="dot"></span>Overdue <span class="n">${s.late.length}</span></h2>${list(s.late,1,"Nothing overdue.")}
+  <h2 id="soon" style="--c:var(--soon)"><span class="dot"></span>Due in the next 14 days <span class="n">${s.soon.length}</span></h2>${list(s.soon,1,"Nothing due in the next two weeks.")}
+  <h2 id="wait" style="--c:var(--k-wait)"><span class="dot"></span>Waiting for others <span class="n">${s.wait.length}</span></h2>${list(s.wait,1,"Nobody owes you anything right now.")}
+  <h2 id="later" style="--c:var(--good)"><span class="dot"></span>Scheduled later (after 14 days) <span class="n">${s.later.length}</span></h2>${list(s.later,1,"Nothing scheduled further out.")}
+  <h2 id="nodate" style="--c:var(--s1)"><span class="dot"></span>Open items without a date <span class="n">${s.nodate.length}</span></h2>${list(s.nodate,1,"Every open item has a date.")}`;
+}
+function renderSectors(){
+  const secs=S.sec?[S.sec]:allSectors();
+  const body=secs.map(s=>{
+    const it=S.items.filter(i=>secOf(i)===s),o=it.filter(open).sort(byUrg),dn=it.filter(i=>!open(i)),late=o.filter(i=>urg(i)==="late").length;
+    if(!it.length)return"";
+    return `<div class="sechead" style="--sc:${secColor(s)}"><b>${esc(s)}</b><span class="chip">${o.length} open</span>${late?`<span class="chip late">⚠ ${late} late</span>`:""}${dn.length?`<span class="chip ok">✓ ${dn.length} done</span>`:""}</div>${list(o.concat(dn),1,"Nothing in this sector.")}`;
+  }).join("");
+  return `${filters()}
+  <form class="add" data-form="quick" style="margin:0 0 6px">
+    <select name="project" id="q-proj" aria-label="Project">${S.projects.filter(p=>p.status!=="closed").map(p=>`<option value="${p.id}">${esc(p.code)} ${esc(p.name)}</option>`).join("")}</select>
+    <select name="kind" id="q-kind" aria-label="Type"><option value="action">Action</option><option value="deliverable">Deliverable</option><option value="waiting">Waiting for</option></select>
+    <input name="title" id="q-title" placeholder="New task" required>
+    <input name="sector" id="q-sec" list="sectorlist" placeholder="Sector" value="${esc(S.sec)}">
+    <input name="who" id="q-who" placeholder="Who">
+    <input name="due" id="q-due" type="date" aria-label="Due date">
+    <button class="primary">Add task</button>
+  </form>
+  <div class="small">Leave the sector empty to use the project's sector. Type a new name to create a sector.</div>
+  ${body||`<div class="list"><div class="empty">No items yet.</div></div>`}`;
+}
+function renderProjects(){
+  const ps=[...S.projects].sort((a,b)=>(a.order??99)-(b.order??99)||String(a.code).localeCompare(String(b.code)));
+  return `<div class="toolbar"><button class="primary" data-act="newproj">New project</button>
+    <div class="legend" style="margin:0"><span><i style="background:var(--good)"></i>Active</span><span><i style="background:var(--k-wait)"></i>Waiting</span><span><i style="background:var(--s1)"></i>Planned</span><span><i style="background:var(--neutral)"></i>Closed</span></div></div>
+  <div id="newproj" hidden>${projForm()}</div>
+  ${ps.length?ps.map(p=>{
+    const its=S.items.filter(i=>i.project===p.id),o=its.filter(open),late=o.filter(i=>urg(i)==="late").length;
+    const pct=its.length?Math.round((its.length-o.length)/its.length*100):0;
+    const logs=S.log.filter(l=>l.project===p.id).sort((a,b)=>b.date.localeCompare(a.date));
+    const pdel=its.length||logs.length?`<span class="small">To remove this project, delete its items and notes first, or set it to Closed.</span>`:
+      (S.confirm==="p:"+p.id?`<button type="button" class="danger" data-act="delproj" data-id="${p.id}">Confirm delete</button>`:`<button type="button" class="link" data-act="askproj" data-id="${p.id}">Delete project</button>`);
+    return `<details class="proj s-${esc(p.status)}" data-pid="${p.id}"${S.open.has(p.id)?" open":""}>
+     <summary><span class="chip brand">${esc(p.code)}</span>
+       <div style="min-width:0"><div class="name">${esc(p.name)}</div><div class="next">Next: <b>${esc(p.nextAction||"not set")}</b></div>
+         <div class="prog" title="${pct}% of items done"><span style="width:${pct}%"></span></div></div>
+       <div class="actions">${p.sector?secChip(p.sector):""}${late?`<span class="chip late">⚠ ${late} late</span>`:""}<span class="chip">${o.length} open</span><span class="pstat">${PSTAT[p.status]||esc(p.status)}</span></div></summary>
+     <div class="pbody">
+       <div>
+         ${["deliverable","action","waiting"].map(k=>{const l=its.filter(i=>i.kind===k).sort((a,b)=>(a.status==="done")-(b.status==="done")||byDue(a,b));return `<h2 style="--c:${KC[k]}"><span class="dot"></span>${KIND[k]} <span class="n">${l.filter(open).length}</span></h2>${list(l,0,"None.")}`}).join("")}
+         <form class="add" data-form="item" data-pid="${p.id}">
+           <select name="kind" id="k-${p.id}" aria-label="Type"><option value="action">Action</option><option value="deliverable">Deliverable</option><option value="waiting">Waiting for</option></select>
+           <input name="title" id="t-${p.id}" placeholder="What needs to happen" required>
+           <input name="sector" id="sc-${p.id}" list="sectorlist" placeholder="Sector" value="${esc(p.sector||"")}">
+           <input name="who" id="w-${p.id}" placeholder="Who (owner or awaited)">
+           <input name="due" id="d-${p.id}" type="date" aria-label="Due date">
+           <button class="primary">Add</button>
+         </form>
+       </div>
+       <div>
+         <h2>Project</h2>
+         <form class="fields" data-form="proj" data-pid="${p.id}">
+           <label for="pc-${p.id}">Code</label><input id="pc-${p.id}" name="code" value="${esc(p.code||"")}">
+           <label for="pn-${p.id}">Name</label><input id="pn-${p.id}" name="name" value="${esc(p.name||"")}">
+           <label for="na-${p.id}">Next action</label><input id="na-${p.id}" name="nextAction" value="${esc(p.nextAction||"")}">
+           <label for="ps-${p.id}">Status</label><select id="ps-${p.id}" name="status">${Object.entries(PSTAT).map(([k,v])=>`<option value="${k}"${p.status===k?" selected":""}>${v}</option>`).join("")}</select>
+           <label for="pse-${p.id}">Sector</label><input id="pse-${p.id}" name="sector" list="sectorlist" value="${esc(p.sector||"")}">
+           <label for="ob-${p.id}">Objective</label><input id="ob-${p.id}" name="objective" value="${esc(p.objective||"")}">
+           <label for="sp-${p.id}">Sign-off</label><input id="sp-${p.id}" name="sponsor" value="${esc(p.sponsor||"")}">
+           <label for="ar-${p.id}">Archive</label><input id="ar-${p.id}" name="archive" class="mono" value="${esc(p.archive||"")}">
+           <span></span><div class="actions" style="justify-content:flex-start"><button class="primary">Save</button>${pdel}</div>
+         </form>
+         <h2>Journal <span class="n">${logs.length}</span></h2>
+         <form class="add" data-form="log" data-pid="${p.id}">
+           <input name="date" id="ld-${p.id}" type="date" value="${TODAY}" aria-label="Date">
+           <textarea name="text" id="lt-${p.id}" rows="2" placeholder="Meeting note, decision, call" required></textarea>
+           <button class="primary">Add note</button>
+         </form>
+         ${logs.map(l=>`<div class="log"><div><div class="d">${fmt(l.date)} ${l.date.slice(0,4)}</div>${esc(l.text)}</div><div>${S.confirm==="l:"+l.id?`<button class="danger" data-act="dellog" data-id="${l.id}">Delete</button>`:`<button class="link" data-act="asklog" data-id="${l.id}" aria-label="Delete note">×</button>`}</div></div>`).join("")}
+       </div>
+     </div></details>`}).join(""):`<div class="list"><div class="empty">No projects yet. Use New project to add the first one.</div></div>`}`;
+}
+function projForm(){
+  return `<form class="fields panel" style="margin-bottom:12px" data-form="newproj">
+   <label for="np-code">Code</label><input id="np-code" name="code" placeholder="P17" required>
+   <label for="np-name">Name</label><input id="np-name" name="name" required>
+   <label for="np-sec">Sector</label><input id="np-sec" name="sector" list="sectorlist">
+   <label for="np-next">Next action</label><input id="np-next" name="nextAction">
+   <label for="np-obj">Objective</label><input id="np-obj" name="objective">
+   <label for="np-sp">Sign-off</label><input id="np-sp" name="sponsor">
+   <span></span><div><button class="primary">Create project</button></div></form>`;
+}
+function renderJournal(){
+  const f=S.jf,logs=S.log.filter(l=>!f||l.project===f).sort((a,b)=>b.date.localeCompare(a.date));
+  return `<div class="toolbar"><label for="jf">Project</label><select id="jf" data-act="jf"><option value="">All projects</option>${S.projects.map(p=>`<option value="${p.id}"${f===p.id?" selected":""}>${esc(p.code)} ${esc(p.name)}</option>`).join("")}</select></div>
+  <div class="list">${logs.length?logs.map(l=>{const p=proj(l.project);return `<div class="row" style="--stripe:var(--brand)"><div><span class="chip brand">${fmt(l.date)}</span></div><div class="t"><div class="meta"><b>${esc(p.code)}</b> ${esc(p.name)}</div><div>${esc(l.text)}</div></div><div></div></div>`}).join(""):`<div class="empty">No notes yet. Add one from a project.</div>`}</div>`;
+}
+const view=()=>(location.hash||"#focus").slice(1);
+function render(){
+  if(!S.ready)return;
+  $("#sectorlist").innerHTML=allSectors().filter(s=>s!=="Unassigned").map(s=>`<option value="${esc(s)}">`).join("");
+  renderStrip();renderLinks();
+  const v=["focus","sectors","projects","journal"].includes(view())?view():"focus";
+  document.querySelectorAll("nav.tabs a").forEach(a=>{if(a.dataset.v===v)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current")});
+  const y=scrollY;
+  $("#view").innerHTML=v==="projects"?renderProjects():v==="journal"?renderJournal():v==="sectors"?renderSectors():renderFocus();
+  window.scrollTo(0,y);
+}
+function note(t){const n=$("#note");n.textContent=t;n.hidden=!t}
+async function write(fn){try{await fn()}catch(e){note("The change was not saved ("+(e&&e.code||"error")+"). Check your connection and try again.")}}
+const clean=o=>{const r={};Object.entries(o).forEach(([k,v])=>r[k]=typeof v==="string"?v.trim():v);return r};
+
+const tip=$("#tip");
+document.addEventListener("pointermove",e=>{
+  const t=e.target.closest&&e.target.closest("[data-tip]");
+  if(!t){tip.hidden=true;return}
+  tip.textContent="";t.dataset.tip.split("\n").forEach((l,k)=>{const d=document.createElement("div");d.textContent=l;if(!k)d.style.fontWeight="600";tip.appendChild(d)});
+  tip.hidden=false;
+  const w=tip.offsetWidth,h=tip.offsetHeight;
+  tip.style.left=Math.max(8,Math.min(innerWidth-w-8,e.clientX+12))+"px";
+  tip.style.top=(e.clientY+h+20>innerHeight?e.clientY-h-12:e.clientY+14)+"px";
+});
+document.addEventListener("click",e=>{
+  const g=e.target.closest("[data-go]");
+  if(g){const sc=g.dataset.scroll;if(location.hash!=="#"+g.dataset.go)location.hash=g.dataset.go;if(sc)setTimeout(()=>{const el=document.getElementById(sc);el&&el.scrollIntoView({block:"start"})},30);return}
+  const b=e.target.closest("[data-act]");if(!b||b.tagName==="SELECT"||b.tagName==="INPUT")return;
+  const a=b.dataset.act,id=b.dataset.id;
+  if(a==="askdel"){S.confirm=id;render();return}
+  if(a==="del"){S.confirm=null;write(()=>db.collection("items").doc(id).delete());return}
+  if(a==="asklog"){S.confirm="l:"+id;render();return}
+  if(a==="dellog"){S.confirm=null;write(()=>db.collection("log").doc(id).delete());return}
+  if(a==="askproj"){e.preventDefault();S.confirm="p:"+id;render();return}
+  if(a==="delproj"){e.preventDefault();S.confirm=null;S.open.delete(id);write(()=>db.collection("projects").doc(id).delete());return}
+  if(a==="edit"){S.edit=id;S.confirm=null;render();return}
+  if(a==="cancel"){S.edit=null;S.confirm=null;render();return}
+  if(a==="sec"){S.sec=b.dataset.s;render();return}
+  if(a==="lv"){S.lv=b.dataset.v;render();return}
+  if(a==="review"){write(()=>db.doc("meta/main").set({lastReview:TODAY}));return}
+  if(a==="newproj"){const n=$("#newproj");n.hidden=!n.hidden;return}
+  if(a==="qedit"){S.qedit=!S.qedit;renderLinks();return}
+  if(a==="qdel"){const L=(S.links||[]).filter((_,k)=>k!==Number(b.dataset.k));write(()=>db.doc("meta/links").set({items:L}));return}
+});
+document.addEventListener("change",e=>{
+  const el=e.target,a=el.dataset.act,id=el.dataset.id;
+  if(a==="status")write(()=>db.collection("items").doc(id).update({status:el.value}));
+  if(a==="jf"){S.jf=el.value;render()}
+});
+document.addEventListener("toggle",e=>{const d=e.target;if(d.classList&&d.classList.contains("proj")){d.open?S.open.add(d.dataset.pid):S.open.delete(d.dataset.pid)}},true);
+/* Dates are saved only when the field is left (or Enter), and only with a full 4-digit year, so typing a date never saves a partial one. */
+const okDate=v=>!v||/^20\d\d-\d\d-\d\d$/.test(v);
+const BADDATE="Date not saved: the year must have 4 digits (2026, 2027...). Tip: pick the date with the calendar icon.";
+function saveDue(el){
+  const it=S.items.find(i=>i.id===el.dataset.id);if(!it)return;
+  const v=el.value;if((it.due||"")===v)return;
+  if(!okDate(v)){note(BADDATE);el.value=it.due||"";return}
+  note("");write(()=>db.collection("items").doc(it.id).update({due:v}));
+}
+document.addEventListener("focusout",e=>{const el=e.target;if(el.dataset&&el.dataset.act==="due")saveDue(el);if(S.dirty)setTimeout(()=>{const a=document.activeElement;if(!(a&&a.closest&&a.closest("#view")&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))){S.dirty=0;render()}},60)});
+document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.dataset&&e.target.dataset.act==="due")e.target.blur()});
+function newItem(fd,pid){
+  if(!okDate(fd.due)){note(BADDATE);return}
+  const d={project:pid,kind:fd.kind,title:fd.title.trim(),due:fd.due||"",status:"todo",who:(fd.who||"").trim(),created:TODAY};
+  const sec=(fd.sector||"").trim();if(sec&&sec!==proj(pid).sector)d.sector=sec;
+  if(fd.kind==="waiting")d.since=TODAY;
+  return write(()=>db.collection("items").add(d));
+}
+document.addEventListener("submit",e=>{
+  e.preventDefault();const f=e.target,fd=Object.fromEntries(new FormData(f)),pid=f.dataset.pid;
+  if(f.dataset.form==="item")newItem(fd,pid);
+  if(f.dataset.form==="quick")newItem(fd,fd.project);
+  if(f.dataset.form==="qadd"){const u=(fd.url||"").trim();if(!/^https:\/\//.test(u)){note("Links must start with https://");return}note("");write(()=>db.doc("meta/links").set({items:[...(S.links||[]),{name:fd.name.trim(),url:u}]}))}
+  if(f.dataset.form==="edit"){if(!okDate(fd.due)||!okDate(fd.since)){note(BADDATE);return}note("");const id=f.dataset.id;S.edit=null;write(()=>db.collection("items").doc(id).update(clean(fd)))}
+  if(f.dataset.form==="log")write(()=>db.collection("log").add({project:pid,date:fd.date||TODAY,text:fd.text.trim()}));
+  if(f.dataset.form==="proj")write(()=>db.collection("projects").doc(pid).update(clean(fd)));
+  if(f.dataset.form==="newproj")write(()=>db.collection("projects").add({...clean(fd),status:"active",order:99}));
+});
+window.addEventListener("hashchange",()=>{S.confirm=null;S.edit=null;render()});
+$("#today").textContent=new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+
+/* ---------- Supabase adapter: same calls as before, stored in four tables ---------- */
+const TBL={projects:"reg_projects",items:"reg_items",log:"reg_log",meta:"reg_settings"};
+let sb=null;
+const L={col:{},doc:{}};
+const dbErr=e=>({code:"unavailable",message:(e&&e.message)||String(e)});
+async function rows(col){const {data,error}=await sb.from(TBL[col]).select("id,data");if(error)throw dbErr(error);return data||[]}
+async function refreshCol(col){
+  try{const r=await rows(col);const snap={docs:r.map(x=>({id:x.id,data:()=>x.data||{}})),metadata:{fromCache:false}};(L.col[col]||[]).forEach(f=>f.next(snap))}
+  catch(e){(L.col[col]||[]).forEach(f=>f.err&&f.err(e))}
+}
+async function refreshMeta(){
+  try{const r=await rows("meta");Object.entries(L.doc).forEach(([id,fs])=>{const x=r.find(y=>y.id===id);const snap={exists:!!x,data:()=>x?x.data||{}:undefined,metadata:{fromCache:false}};fs.forEach(f=>f.next(snap))})}
+  catch(e){Object.values(L.doc).flat().forEach(f=>f.err&&f.err(e))}
+}
+const refreshAll=()=>{["projects","items","log"].forEach(refreshCol);refreshMeta()};
+function makeDb(){
+  const docRef=(col,id)=>({
+    async update(patch){const {data,error}=await sb.from(TBL[col]).select("data").eq("id",id).maybeSingle();if(error)throw dbErr(error);
+      const merged={...((data&&data.data)||{}),...patch};const r=await sb.from(TBL[col]).upsert({id,data:merged,updated_at:new Date().toISOString()});if(r.error)throw dbErr(r.error);col==="meta"?refreshMeta():refreshCol(col)},
+    async set(obj){const r=await sb.from(TBL[col]).upsert({id,data:obj,updated_at:new Date().toISOString()});if(r.error)throw dbErr(r.error);col==="meta"?refreshMeta():refreshCol(col)},
+    async delete(){const r=await sb.from(TBL[col]).delete().eq("id",id);if(r.error)throw dbErr(r.error);col==="meta"?refreshMeta():refreshCol(col)},
+    onSnapshot(next,err){(L.doc[id]=L.doc[id]||[]).push({next,err});refreshMeta();return()=>{}}
+  });
+  return {
+    collection(col){return {
+      doc(id){return docRef(col,id||((crypto.randomUUID&&crypto.randomUUID())||String(Date.now())+Math.random()).replace(/-/g,"").slice(0,14))},
+      async add(obj){const id=(((crypto.randomUUID&&crypto.randomUUID())||String(Date.now())+Math.random()).replace(/[-.]/g,"")).slice(0,14);await docRef(col,id).set(obj)},
+      onSnapshot(next,err){(L.col[col]=L.col[col]||[]).push({next,err});refreshCol(col);return()=>{}}
+    }},
+    doc(path){const [col,id]=path.split("/");return docRef(col,id)}
+  };
+}
+function startApp(){
+  db=makeDb();
+  $("#login").hidden=true;
+  const t=setTimeout(()=>note("The data can't be reached yet. Check the connection."),10000);
+  const need={projects:0,items:0,log:0,meta:0};
+  const done=k=>{need[k]=1;if(Object.values(need).every(Boolean)){S.ready=1;clearTimeout(t);note("")}render()};
+  const err=e=>{clearTimeout(t);note("The register could not load its data ("+(e&&e.message||"error")+"). Check the connection and reload.")};
+  const safeRender=()=>{const a=document.activeElement;if(a&&a.closest&&a.closest("#view")&&/^(INPUT|TEXTAREA)$/.test(a.tagName)){S.dirty=1;return}render()};
+  const sub=k=>db.collection(k).onSnapshot(s=>{S[k]=s.docs.map(d=>({id:d.id,...d.data()}));if(!need[k])done(k);else safeRender()},err);
+  sub("projects");sub("items");sub("log");
+  db.doc("meta/links").onSnapshot(s=>{S.links=s.exists&&Array.isArray(s.data().items)?s.data().items:[];if(S.ready)renderLinks()},err);
+  db.doc("meta/main").onSnapshot(s=>{S.meta=s.exists?s.data():{};if(!need.meta)done("meta");else safeRender()},err);
+  /* Pick up changes made on another device when the page comes back to the front. */
+  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")refreshAll()});
+}
+function showLogin(msg){$("#login").hidden=false;$("#lgErr").textContent=msg||"";S.ready=0}
+$("#loginForm").addEventListener("submit",async e=>{
+  e.preventDefault();e.stopPropagation();const btn=$("#lgBtn");btn.disabled=true;$("#lgErr").textContent="";
+  const {error}=await sb.auth.signInWithPassword({email:$("#lgEmail").value.trim(),password:$("#lgPass").value});
+  btn.disabled=false;
+  if(error){$("#lgErr").textContent="Sign-in failed: check the email and password.";return}
+  startApp();
+},true);
+$("#outBtn").addEventListener("click",async()=>{try{await sb.auth.signOut()}catch(e){}location.reload()});
+$("#fsBtn").addEventListener("click",()=>{try{if(document.fullscreenElement)document.exitFullscreen();else document.documentElement.requestFullscreen().catch(()=>note("Full screen is not available in this browser."))}catch(e){note("Full screen is not available in this browser.")}});
+document.addEventListener("fullscreenchange",()=>{$("#fsBtn").textContent=document.fullscreenElement?"Exit full screen":"Full screen"});
+(async()=>{
+  if(!window.supabase||SUPABASE_URL.startsWith("PASTE")){$("#view").innerHTML=`<div class="list"><div class="empty">Setup not finished: paste the Supabase URL and key at the top of index.html.</div></div>`;return}
+  sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+  const {data}=await sb.auth.getSession();
+  if(data&&data.session)startApp();else showLogin();
+})();
+</script>
+
+</body>
+</html>
