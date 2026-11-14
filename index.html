@@ -167,6 +167,38 @@ form.add input[name=title]{flex:1 1 200px}
 @media (max-width:560px){.row{grid-template-columns:1fr}.row .actions{justify-content:flex-start}.proj > summary{grid-template-columns:1fr}h1{font-size:1.9rem}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 
+/* ===== MAS Academy panel ===== */
+.ac-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+.ac-tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;border-top:4px solid var(--tc,var(--brand))}
+.ac-tile .label{font-size:.74rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700;margin-bottom:4px}
+.ac-tile .val{font-family:var(--f-mono);font-size:2rem;font-weight:500;line-height:1.1;color:var(--tv,var(--ink))}
+.ac-tile .sub{font-size:.8rem;color:var(--muted);margin-top:2px}
+.ac-sec{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:16px}
+.ac-sec-head{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--soft)}
+.ac-sec-head b{font-size:.95rem}
+.ac-sec-head .sport-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.ac-month-row{display:grid;grid-template-columns:110px repeat(5,1fr);gap:0;font-size:.84rem}
+.ac-month-row.hdr{background:var(--soft);font-weight:700;font-size:.74rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.ac-month-row > div{padding:8px 10px;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.ac-month-row > div:first-child{font-weight:600}
+.ac-month-row > div:last-child{border-right:0}
+.ac-month-row.hdr > div{padding:7px 10px}
+.ac-week-mini{display:flex;flex-wrap:wrap;gap:4px;padding:12px 16px}
+.wdot{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--f-mono);font-size:.65rem;font-weight:600;cursor:default;border:1px solid transparent}
+.wdot.has-comp{border-color:var(--brand);color:var(--brand)}
+.wdot.past{background:var(--good-soft);color:var(--good-ink)}
+.wdot.future{background:var(--soft);color:var(--muted)}
+.wdot.current{background:var(--brand);color:var(--brand-ink)}
+.wdot.rest{background:var(--soon-soft);color:var(--soon-ink);font-style:italic}
+.ac-staff-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;padding:14px 16px}
+.ac-coach{background:var(--soft);border-radius:10px;padding:12px 14px;border-left:4px solid var(--cc,var(--neutral))}
+.ac-coach .sport{font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:3px}
+.ac-coach .name{font-weight:600;font-size:.95rem}
+.ac-coach .role{font-size:.8rem;color:var(--muted)}
+.ac-loading{padding:20px;color:var(--muted);font-size:.9rem;text-align:center}
+.ac-err{padding:14px 16px;color:var(--late-ink);background:var(--late-soft);border-radius:10px;font-size:.88rem;margin-bottom:14px}
+@media(max-width:600px){.ac-month-row{grid-template-columns:80px repeat(5,1fr);font-size:.76rem}}
+
 .mast .tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .mast .tools button{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:999px;padding:5px 12px;font-size:.82rem}
 #login{position:fixed;inset:0;z-index:30;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px}
@@ -197,6 +229,7 @@ form.add input[name=title]{flex:1 1 200px}
     <a href="#sectors" data-v="sectors">Sectors</a>
     <a href="#projects" data-v="projects">Projects</a>
     <a href="#journal" data-v="journal">Journal</a>
+    <a href="#academy" data-v="academy">MAS Academy</a>
   </nav>
   <div id="view"><div class="list"><div class="empty">Loading the register. Projects, deadlines and notes appear here once the data arrives.</div></div></div>
 </main>
@@ -473,9 +506,10 @@ function render(){
   if(!S.ready)return;
   $("#sectorlist").innerHTML=allSectors().filter(s=>s!=="Unassigned").map(s=>`<option value="${esc(s)}">`).join("");
   renderStrip();renderLinks();
-  const v=["focus","sectors","projects","journal"].includes(view())?view():"focus";
+  const v=["focus","sectors","projects","journal","academy"].includes(view())?view():"focus";
   document.querySelectorAll("nav.tabs a").forEach(a=>{if(a.dataset.v===v)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current")});
   const y=scrollY;
+  if(v==="academy"){renderAcademy();return}
   $("#view").innerHTML=v==="projects"?renderProjects():v==="journal"?renderJournal():v==="sectors"?renderSectors():renderFocus();
   window.scrollTo(0,y);
 }
@@ -547,6 +581,144 @@ document.addEventListener("submit",e=>{
   if(f.dataset.form==="proj")write(()=>db.collection("projects").doc(pid).update(clean(fd)));
   if(f.dataset.form==="newproj")write(()=>db.collection("projects").add({...clean(fd),status:"active",order:99}));
 });
+/* ===== MAS Academy KPI panel ===== */
+const SPORT_COL={Athletics:"var(--s4)",Basketball:"var(--s1)",Fencing:"var(--s5)",Tennis:"var(--s3)",Volleyball:"var(--s2)"};
+const SEASON_START=new Date("2026-08-30T00:00:00");
+const isoDate=d=>{const p=n=>String(n).padStart(2,"0");return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())};
+const todayISO=isoDate(new Date());
+
+async function loadAcademyData(){
+  const[wR,mR,sR]=await Promise.all([
+    sb.from("mas_midan_weeks").select("id,year,week,start,end,comps,sessions,athletes,notes").order("week"),
+    sb.from("mas_midan_monthly").select("id,year,month,sessions,athletes,competitions,medals,highlights,notes").order("year").order("month"),
+    sb.from("mas_staff").select("id,name,sport,role,status").eq("role","Head coach")
+  ]);
+  if(wR.error||mR.error||sR.error)throw new Error((wR.error||mR.error||sR.error).message);
+  return{weeks:wR.data||[],months:mR.data||[],staff:sR.data||[]};
+}
+
+function acKpis(weeks,months){
+  const reported=weeks.filter(w=>w.sessions>0&&w.start<=todayISO);
+  const totalSessions=reported.reduce((s,w)=>s+(w.sessions||0),0);
+  const totalComps=weeks.reduce((s,w)=>s+((w.comps&&Array.isArray(w.comps)?w.comps:JSON.parse(w.comps||"[]")).length),0);
+  const lastMonth=months.length?months[months.length-1]:null;
+  const attendPct=lastMonth&&lastMonth.athletes&&lastMonth.sessions?Math.round(lastMonth.sessions/lastMonth.athletes*10)/10:null;
+  const weeksTotal=weeks.length;
+  const weeksDone=reported.length;
+  const pct=weeksTotal?Math.round(weeksDone/weeksTotal*100):0;
+  return `<div class="ac-kpis">
+    <div class="ac-tile" style="--tc:var(--s3)">
+      <div class="label">Sessions (season to date)</div>
+      <div class="val">${totalSessions}</div>
+      <div class="sub">${weeksDone} reporting weeks</div>
+    </div>
+    <div class="ac-tile" style="--tc:var(--s1)">
+      <div class="label">Season progress</div>
+      <div class="val">${pct}%</div>
+      <div class="sub">Week ${weeksDone} / ${weeksTotal}</div>
+    </div>
+    <div class="ac-tile" style="--tc:var(--s5)">
+      <div class="label">Competitions planned</div>
+      <div class="val">${totalComps}</div>
+      <div class="sub">all sports, full season</div>
+    </div>
+    ${lastMonth?`<div class="ac-tile" style="--tc:var(--s2)">
+      <div class="label">Last month athletes</div>
+      <div class="val">${lastMonth.athletes||"—"}</div>
+      <div class="sub">${lastMonth.sessions||0} sessions · ${new Date(lastMonth.year,lastMonth.month-1).toLocaleDateString("en-GB",{month:"long",year:"numeric"})}</div>
+    </div>`:""}
+  </div>`;
+}
+
+function acStaff(staff){
+  if(!staff.length)return"";
+  return `<div class="ac-sec">
+    <div class="ac-sec-head"><b>Coaching staff</b><span class="chip">${staff.length} head coaches</span></div>
+    <div class="ac-staff-grid">
+      ${staff.map(c=>`<div class="ac-coach" style="--cc:${SPORT_COL[c.sport]||"var(--neutral)"}">
+        <div class="sport">${esc(c.sport)}</div>
+        <div class="name">${esc(c.name)}</div>
+        <div class="role">${esc(c.role||"Head coach")}</div>
+      </div>`).join("")}
+    </div>
+  </div>`;
+}
+
+function acMonthly(months){
+  if(!months.length)return"";
+  const MNTHS=["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const rows=months.map(m=>{
+    const hl=Array.isArray(m.highlights)?m.highlights:(typeof m.highlights==="string"?JSON.parse(m.highlights||"[]"):[]);
+    const sports=hl.map(h=>esc(h.sport||"")).filter(Boolean).join(", ")||"—";
+    return `<div class="ac-month-row">
+      <div>${MNTHS[m.month]} ${m.year}</div>
+      <div>${m.sessions||0}</div>
+      <div>${m.athletes||0}</div>
+      <div>${m.competitions||0}</div>
+      <div>${sports}</div>
+      <div>${hl.length?"✓":"—"}</div>
+    </div>`;
+  }).join("");
+  return `<div class="ac-sec">
+    <div class="ac-sec-head"><b>Monthly reports</b><span class="chip">${months.length} months</span></div>
+    <div class="ac-month-row hdr">
+      <div>Month</div><div>Sessions</div><div>Athletes</div><div>Comps</div><div>Sports</div><div>Highlights</div>
+    </div>
+    ${rows}
+  </div>`;
+}
+
+function acWeeks(weeks){
+  if(!weeks.length)return"";
+  const dots=weeks.map(w=>{
+    const comps=Array.isArray(w.comps)?w.comps:(typeof w.comps==="string"?JSON.parse(w.comps||"[]"):[]);
+    const hasComp=comps.length>0;
+    const isPast=w.end<todayISO;
+    const isCurrent=w.start<=todayISO&&w.end>=todayISO;
+    const isRest=w.sessions===0&&isPast;
+    let cls="wdot";
+    if(isCurrent)cls+=" current";
+    else if(isRest)cls+=" rest";
+    else if(isPast)cls+=" past";
+    else cls+=" future";
+    if(hasComp)cls+=" has-comp";
+    const tip=`W${w.week} (${w.start} → ${w.end})\nSessions: ${w.sessions||0}${hasComp?"\nComps: "+comps.map(c=>c.name||c.sport).join(", "):""}`;
+    return `<div class="${cls}" data-tip="${esc(tip)}" title="${esc(tip)}">${w.week}</div>`;
+  }).join("");
+  const compCount=weeks.filter(w=>{const c=Array.isArray(w.comps)?w.comps:(typeof w.comps==="string"?JSON.parse(w.comps||"[]"):[]);return c.length>0}).length;
+  return `<div class="ac-sec">
+    <div class="ac-sec-head"><b>Season calendar</b>
+      <span class="chip">${weeks.length} weeks</span>
+      <span class="chip brand">${compCount} competition weeks</span>
+    </div>
+    <div style="padding:8px 16px 4px;font-size:.78rem;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap">
+      <span><span class="wdot past" style="display:inline-flex;width:18px;height:18px;font-size:.6rem;vertical-align:-4px;margin-right:4px"> </span>Reported</span>
+      <span><span class="wdot current" style="display:inline-flex;width:18px;height:18px;font-size:.6rem;vertical-align:-4px;margin-right:4px"> </span>Current</span>
+      <span><span class="wdot future" style="display:inline-flex;width:18px;height:18px;font-size:.6rem;vertical-align:-4px;margin-right:4px"> </span>Upcoming</span>
+      <span><span class="wdot has-comp" style="display:inline-flex;width:18px;height:18px;font-size:.6rem;vertical-align:-4px;margin-right:4px"> </span>Competition week</span>
+    </div>
+    <div class="ac-week-mini">${dots}</div>
+  </div>`;
+}
+
+async function renderAcademy(){
+  if(!sb){return}
+  const el=$("#view");
+  el.innerHTML=`<div class="ac-loading">Loading MAS Academy data…</div>`;
+  try{
+    const{weeks,months,staff}=await loadAcademyData();
+    el.innerHTML=`
+      <h2 style="--c:var(--brand)"><span class="dot"></span>MAS Academy — Season 2026/2027</h2>
+      ${acKpis(weeks,months)}
+      ${acStaff(staff)}
+      ${acMonthly(months)}
+      ${acWeeks(weeks)}
+    `;
+  }catch(e){
+    el.innerHTML=`<div class="ac-err">Could not load MAS Academy data: ${esc(e.message||"unknown error")}. Check the connection and reload.</div>`;
+  }
+}
+
 window.addEventListener("hashchange",()=>{S.confirm=null;S.edit=null;render()});
 $("#today").textContent=new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
 
