@@ -1,6 +1,4 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.47.10/dist/umd/supabase.min.js"></script>
-</head><body>
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>MAS Academy Pilotage</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -260,22 +258,20 @@ dialog form{display:flex;flex-direction:column;gap:14px;padding:18px}
 <main><div class="wrap" id="view"><p class="loading">Loading academy data…</p></div></main>
 
 <dialog id="dlg"><form id="dlgForm" method="dialog"></form></dialog>
-<dialog id="loginDlg" style="width:min(360px,calc(100vw - 24px));border:1px solid var(--line);border-radius:14px;padding:0;background:var(--surface);color:var(--fg)">
-  <form id="loginForm" style="display:flex;flex-direction:column;gap:14px;padding:24px">
-    <div style="display:flex;flex-direction:column;gap:4px">
-      <div style="font:800 18px/1.2 var(--f-display);color:var(--accent)">MAS Academy</div>
-      <div style="font-size:13px;color:var(--muted)">Sign in to view and edit the academy data</div>
-    </div>
-    <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--muted)">Email<input id="loginEmail" type="email" autocomplete="username" required style="font:14px var(--f-body);color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%"></label>
-    <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--muted)">Password<input id="loginPwd" type="password" autocomplete="current-password" required style="font:14px var(--f-body);color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%"></label>
-    <div id="loginErr" style="display:none;font-size:12px;color:var(--bad);border:1px solid color-mix(in srgb,var(--bad) 30%,var(--line));border-radius:8px;padding:8px 10px"></div>
-    <button type="submit" class="primary" id="loginBtn" style="margin-top:4px">Sign in</button>
-  </form>
-</dialog>
 <div class="toast" id="toast" hidden></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
 <script>
 (function(){
+/* ===== Supabase config (RLS disabled — anon key has full access) ===== */
+const SUPABASE_URL="https://gznrwfokvxozhpnnraic.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd6bnJ3Zm9rdnhvemhwbm5yYWljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM0NTU4MjgsImV4cCI6MjEwOTAzMTgyOH0.YmJViWWhI2Ez2Yv5Ua00Umlp6zOu7eQU9lsFQgozoeI";
+/* PIN: stored in localStorage; any non-empty value grants write access */
+const PIN_KEY="mas.pin";
+const PIN_HASH_KEY="mas.pinh";
+function hashPin(p){let h=0;for(let i=0;i<p.length;i++){h=((h<<5)-h)+p.charCodeAt(i);h|=0}return String(h)}
+let sb;
+
 const DEFAULT_CONFIG={
   season:"2026-2027",
   sports:["Athletics","Basketball","Fencing","Volleyball","Tennis"],
@@ -308,44 +304,15 @@ const fmtLong=s=>{const d=parse(s);return d.toLocaleDateString("en-GB",{weekday:
 const mins=t=>{if(!t)return null;const [h,m]=t.split(":").map(Number);return h*60+(m||0)};
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
-/* ---------- Supabase ---------- */
-const SUPABASE_URL="https://gznrwfokvxozhpnnraic.supabase.co";
-const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imf6bnJ3Zm9rdnhvemhwbm5yYWljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk1MTg0NjEsImV4cCI6MjA1NTA5NDQ2MX0.gJBrTVFnFRGkDR3nJeNiRzD7DvUMv5aS6_wVRCOJlhI";
-const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
-
-/* camelCase → snake_case column mapping for tables that have FK id fields */
-const TO_SB={groupId:"group_id",facilityId:"facility_id",staffId:"staff_id",coachId:"coach_id",assistantId:"assistant_id",ownerId:"owner_id",perWeek:"per_week",doneAt:"done_at"};
-const FROM_SB={group_id:"groupId",facility_id:"facilityId",staff_id:"staffId",coach_id:"coachId",assistant_id:"assistantId",owner_id:"ownerId",per_week:"perWeek",done_at:"doneAt"};
-const TBL={staff:"mas_staff",facilities:"mas_facilities",sessions:"mas_sessions",groups:"mas_groups",tasks:"mas_tasks",reports:"mas_reports",midan_weeks:"mas_midan_weeks",midan_events:"mas_midan_events",midan_monthly:"mas_midan_monthly",config:"mas_config",brief:"mas_config"};
-
-/* Convert JS camelCase object to Supabase snake_case row */
-function toRow(col,obj){
-  const r={};
-  for(const[k,v]of Object.entries(obj)){
-    const sk=TO_SB[k]||k;
-    r[sk]=v;
-  }
-  return r;
-}
-/* Convert Supabase snake_case row to JS camelCase object */
-function fromRow(col,row){
-  const o={};
-  for(const[k,v]of Object.entries(row)){
-    const jk=FROM_SB[k]||k;
-    o[jk]=v;
-  }
-  return o;
-}
-
 const S={config:DEFAULT_CONFIG,staff:[],facilities:[],sessions:[],groups:[],tasks:[],reports:[],midan_weeks:[],midan_events:[],midan_monthly:[],midan_meta:null,loaded:{},
   av:LS.get("mas.av")||"summary",gs:"",rpCurrent:null,
   brief:{decisions:"",achieved:"",milestones:"",blocked:""},
   rp:{period:LS.get("mas.rp.period")||"month",from:"",to:"",lang:LS.get("mas.rp.lang")||"en",author:LS.get("mas.rp.author")||"Mohammed Benhamida, MAS WSC Consultant",comments:LS.get("mas.rp.comments")||"",view:""},
-  uid:null,email:"",dbReady:false,
+  db:null,uid:null,canWrite:null,readOnly:false,dbOff:false,names:{},
   tab:"today",day:today(),week:weekStart(today()),
   f:{psport:"",pfac:"",pstaff:"",steam:"",sstat:"",tarea:"",towner:"",tdone:LS.get("mas.tdone")==="1",smonth:""}};
 
-const writable=()=>!!S.uid&&S.dbReady;
+const writable=()=>!!sb&&!S.readOnly&&S.canWrite!==false;
 const cfg=()=>S.config;
 const sportColor=sp=>{const i=cfg().sports.indexOf(sp);return i<0?"var(--idle)":"var(--s"+(i%5+1)+")"};
 const byId=(col,id)=>S[col].find(x=>x.id===id);
@@ -426,44 +393,57 @@ const DEFAULTS={staff:{status:"Active",team:"Technical"},facilities:{status:"Ava
 let toastT;
 function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,3200)}
 function writeErr(e){
-  console.error("DB error",e);
+  if(e&&e.code==="invalid_argument"&&S.canWrite!==true){S.readOnly=true;render();toast("Your access level allows viewing only.");return}
+  if(e&&e.code==="quota_exceeded"){toast("Storage limit reached: delete old sessions.");return}
   toast("Could not save right now. Please try again shortly.");
 }
-const stamp=()=>({_at:new Date().toISOString(),_by:S.email||S.uid||null});
-/* Generate a UUID v4 */
-const uuid4=()=>([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16));
-
+const stamp=()=>({_at:new Date().toISOString(),_by:S.uid||null});
+/* Table name mapping: Firestore collection → Supabase table */
+const TBL={staff:"mas_staff",facilities:"mas_facilities",sessions:"mas_sessions",groups:"mas_groups",tasks:"mas_tasks",reports:"mas_reports",midan_weeks:"mas_midan_weeks",midan_events:"mas_midan_events",midan_monthly:"mas_midan_monthly"};
+/* Normalize camelCase → snake_case for tables that need it */
+function toDb(col,data){
+  const r={...data};
+  if(col==="groups"){
+    if("coachId" in r){r.coach_id=r.coachId;delete r.coachId}
+    if("assistantId" in r){r.assistant_id=r.assistantId;delete r.assistantId}
+  }
+  if(col==="midan_weeks"||col==="midan_events"){
+    /* "date" is the internal alias for "start"; "end" is a SQL keyword so keep it as-is */
+    if("date" in r&&!("start" in r)){r.start=r.date;delete r.date}
+  }
+  return r;
+}
 async function save(col,id,data){
   if(!writable())return;
   if(col==="tasks")data=withHist(id?byId("tasks",id):null,data);
-  const tbl=TBL[col];if(!tbl){toast("Unknown collection: "+col);return}
-  const row={...toRow(col,data),...{_at:new Date().toISOString(),_by:S.email||S.uid||null}};
-  if(id){row.id=id;}else{row.id=uuid4();}
+  const row=toDb(col,{...data,...stamp(),id:id||undefined});
   try{
-    const{error}=await sb.from(tbl).upsert(row,{onConflict:"id"});
+    const {error}=id
+      ?await sb.from(TBL[col]).upsert({...row,id},{ onConflict:"id"})
+      :await sb.from(TBL[col]).insert(row);
     if(error)throw error;
     toast("Saved");
+    await loadAll();
   }catch(e){writeErr(e)}
 }
 async function patch(col,id,data){
   if(!writable())return;
   if(col==="tasks"){const old=byId("tasks",id);if(!old)return;const full=withHist(old,{...old,...data});
     data={status:full.status,progress:full.progress,doneAt:full.doneAt,history:full.history,created:full.created,start:full.start||null}}
-  const tbl=TBL[col];if(!tbl)return;
-  const row={id:id,...toRow(col,data),_at:new Date().toISOString(),_by:S.email||S.uid||null};
   try{
-    const{error}=await sb.from(tbl).upsert(row,{onConflict:"id"});
+    const {error}=await sb.from(TBL[col]).update(toDb(col,{...data,...stamp()})).eq("id",id);
     if(error)throw error;
     toast("Updated");
+    await loadAll();
   }catch(e){writeErr(e)}
 }
 async function remove(col,id){
   if(!writable())return;
-  const tbl=TBL[col];if(!tbl)return;
   try{
-    const{error}=await sb.from(tbl).delete().eq("id",id);
+    const {error}=await sb.from(TBL[col]).delete().eq("id",id);
     if(error)throw error;
     toast("Deleted");
+    await loadAll();
   }catch(e){writeErr(e)}
 }
 
@@ -509,8 +489,9 @@ form.addEventListener("submit",e=>{
 });
 
 async function nameOf(uid){
-  /* With Supabase we store the email/uid in _by; we can't resolve display names from uid alone */
-  return uid||"";
+  if(!uid)return "";
+  /* staffName lookup is sufficient on GitHub Pages */
+  return staffName(uid)||uid;
 }
 
 /* ---------- analysis ---------- */
@@ -557,9 +538,9 @@ const sessLabel=s=>{const g=s.groupId&&byId("groups",s.groupId);return (s.sport|
 
 /* ---------- views ---------- */
 const V={};
-const roNote=()=>!S.dbReady?`<div class="ro-note">Sign in to view and edit the academy data.</div>`:(!writable()?`<div class="ro-note">Connecting to database…</div>`:"");
+const roNote=()=>!sb?`<div class="ro-note">Not connected. Enter your PIN to edit data.</div>`:(!writable()?`<div class="ro-note">View only: enter your PIN to enable editing.</div>`:"");
 const addBtn=(col,label,preset)=>writable()?`<button class="primary" data-add="${col}"${preset?` data-preset='${esc(JSON.stringify(preset))}'`:""}>${esc(label)}</button>`:"";
-const exportBtn=k=>S.dbReady?`<button data-export="${k}">Export CSV</button>`:"";
+const exportBtn=k=>`<button data-export="${k}">Export CSV</button>`;
 
 V.today=()=>{
   const d=S.day,list=S.sessions.filter(s=>s.date===d).sort((a,b)=>(a.start||"").localeCompare(b.start||""));
@@ -879,27 +860,18 @@ async function importMidan(file){
   let d;try{d=JSON.parse(await file.text())}catch(e){toast("This file is not a valid MIDAN export.");return}
   if(!d||!Array.isArray(d.annual_weeks)){toast("This file is not a MIDAN export (no season calendar found).");return}
   const out=midanTransform(d);
-  const stamp={_at:new Date().toISOString(),_by:S.email||S.uid||null};
-  const TBL_MIDAN={midan_weeks:"mas_midan_weeks",midan_events:"mas_midan_events",midan_monthly:"mas_midan_monthly"};
+  const jobs=[];
+  for(const col of ["midan_weeks","midan_events","midan_monthly"]){
+    const keep=new Set(out[col].map(x=>x.id));
+    for(const old of S[col])if(!keep.has(old.id))jobs.push(()=>sb.from(TBL[col]).delete().eq("id",old.id));
+    for(const x of out[col]){const {id,...rest}=x;jobs.push(()=>sb.from(TBL[col]).upsert(toDb(col,{id,...rest,...stamp()}),{onConflict:"id"}))}
+  }
   try{
-    for(const col of ["midan_weeks","midan_events","midan_monthly"]){
-      const tbl=TBL_MIDAN[col];
-      /* Delete rows not in the new import */
-      const keep=new Set(out[col].map(x=>x.id));
-      const toDelete=S[col].filter(x=>!keep.has(x.id)).map(x=>x.id);
-      if(toDelete.length){const{error}=await sb.from(tbl).delete().in("id",toDelete);if(error)throw error}
-      /* Upsert all new rows in batches of 50 */
-      const rows=out[col].map(x=>({...x,...stamp}));
-      for(let i=0;i<rows.length;i+=50){
-        toast("Importing MIDAN data… "+Math.min(100,Math.round((i+50)/rows.length*100))+" %");
-        const{error}=await sb.from(tbl).upsert(rows.slice(i,i+50),{onConflict:"id"});
-        if(error)throw error;
-      }
-    }
-    /* Store meta in mas_config row id='midan_meta' */
-    const{error:me}=await sb.from("mas_config").upsert({id:"midan_meta",data:out.meta,...stamp},{onConflict:"id"});
-    if(me)throw me;
+    for(let i=0;i<jobs.length;i+=25){await Promise.all(jobs.slice(i,i+25).map(f=>f()));toast("Importing MIDAN data… "+Math.min(100,Math.round((i+25)/jobs.length*100))+" %")}
+    /* midan_meta stored in mas_config table as a single row with id='midan_meta' */
+    await sb.from("mas_config").upsert({id:"midan_meta",data:out.meta,...stamp()},{onConflict:"id"});
     toast(`MIDAN data imported: ${out.meta.counts.competitions} competitions, ${out.meta.counts.monthly} monthly reports`);
+    await loadAll();
   }catch(e){writeErr(e)}
 }
 function midanOverlap(from,to){return S.midan_weeks.filter(w=>w.date<=to&&addDays(w.date,6)>=from)}
@@ -1144,19 +1116,15 @@ async function exportPdf(btn){
     const n=pdf.getNumberOfPages(),m=S.rpCurrent.model,en=S.rpCurrent.lang!=="fr";
     for(let i=1;i<=n;i++){pdf.setPage(i);pdf.setFontSize(8);pdf.setTextColor(110);pdf.text(`MAS Academy · ${en?"Progress Report":"Rapport d'avancement"} · ${m.from} / ${m.to} · ${i}/${n}`,W/2,H-5,{align:"center"})}
     const blob=pdf.output("blob");
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement("a");
-    const filename=`MAS_Academy_${en?"Report":"Rapport"}_${m.from}_${m.to}.pdf`;
-    a.href=url;a.download=filename;a.click();
-    setTimeout(()=>URL.revokeObjectURL(url),5000);
+    const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`MAS_Academy_${en?"Report":"Rapport"}_${m.from}_${m.to}.pdf`;
+    document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);document.body.removeChild(a)},100);
     toast("PDF ready");
-  }catch(e){toast(e&&e.message==="load"?"The PDF module could not load. Check the connection and try again.":"PDF export is not possible right now.")}
+  }catch(e){if(!(e&&e.code==="declined"))toast(e&&e.message==="load"?"The PDF module could not load. Check the connection and try again.":"PDF export is not possible right now.")}
   finally{btn.disabled=false;btn.textContent=label}
 }
 async function archiveReport(){
   if(!writable()||!S.rpCurrent)return;
-  const row={id:uuid4(),model:S.rpCurrent.model,lang:S.rpCurrent.lang,date:today(),period:S.rpCurrent.model.from+"/"+S.rpCurrent.model.to,content:S.rpCurrent.model,_at:new Date().toISOString(),_by:S.email||S.uid||null};
-  try{const{error}=await sb.from("mas_reports").insert(row);if(error)throw error;toast("Report archived")}catch(e){writeErr(e)}
+  try{const {error}=await sb.from("mas_reports").insert({model:S.rpCurrent.model,lang:S.rpCurrent.lang,...stamp()});if(error)throw error;toast("Report archived");await loadAll()}catch(e){writeErr(e)}
 }
 
 V.settings=()=>{
@@ -1184,9 +1152,10 @@ function renderTabs(){
 }
 function render(){
   renderTabs();
+  renderPinBtn();
   const v=document.getElementById("view");
   const scrollY=window.scrollY;
-  const pending=S.dbReady&&COLS.some(c=>!S.loaded[c]);
+  const pending=sb&&COLS.some(c=>!S.loaded[c]);
   const ae=document.activeElement,aid=ae&&ae.id&&v.contains(ae)?ae.id:null;let ss=null,se=null;try{ss=ae.selectionStart;se=ae.selectionEnd}catch(e){}
   if(!S.gs)S.gs=addDays(weekStart(today()),-28);
   v.innerHTML=(pending?`<p class="loading">Syncing data…</p>`:"")+V[S.tab]();
@@ -1212,8 +1181,7 @@ view.addEventListener("click",e=>{
   const gs=t.closest("[data-gs]");if(gs){const n=+gs.dataset.gs;S.gs=n===0?addDays(weekStart(today()),-28):addDays(S.gs,n);render();return}
   const pdfb=t.closest("[data-pdf]");if(pdfb){exportPdf(pdfb);return}
   if(t.closest("[data-arch]")){archiveReport();return}
-  if(t.closest("[data-bsave]")){if(!writable())return;
-    sb.from("mas_config").upsert({id:"brief",data:{decisions:S.brief.decisions||"",achieved:S.brief.achieved||"",milestones:S.brief.milestones||"",blocked:S.brief.blocked||""},_at:new Date().toISOString(),_by:S.email||S.uid||null},{onConflict:"id"}).then(({error})=>error?writeErr(error):toast("Decisions and milestones saved"));return}
+  if(t.closest("[data-bsave]")){if(!writable())return;sb.from("mas_config").upsert({id:"brief_main",data:{decisions:S.brief.decisions||"",achieved:S.brief.achieved||"",milestones:S.brief.milestones||"",blocked:S.brief.blocked||""},...stamp()},{onConflict:"id"}).then(()=>toast("Decisions and milestones saved"),writeErr);return}
   const rv=t.closest("[data-rview]");if(rv){S.rp.view=rv.dataset.rview;render();window.scrollTo(0,0);return}
   if(t.closest("[data-rlive]")){S.rp.view="";render();return}
   const rd=t.closest("[data-rdel]");if(rd){if(!rd.classList.contains("armed")){rd.classList.add("armed");rd.textContent="Confirm";return}if(S.rp.view===rd.dataset.rdel)S.rp.view="";remove("reports",rd.dataset.rdel);return}
@@ -1249,7 +1217,7 @@ view.addEventListener("submit",async e=>{
   const fd=new FormData(e.target),lines=k=>String(fd.get(k)||"").split("\n").map(s=>s.trim()).filter(Boolean);
   const next={season:String(fd.get("season")||"").trim()||DEFAULT_CONFIG.season,sports:lines("sports"),levels:lines("levels"),teams:lines("teams"),areas:lines("areas")};
   for(const k of ["sports","levels","teams","areas"])if(!next[k].length){toast("Each list must contain at least one entry.");return}
-  try{const row={id:"main",...next,_at:new Date().toISOString(),_by:S.email||S.uid||null};const{error}=await sb.from("mas_config").upsert(row,{onConflict:"id"});if(error)throw error;toast("Settings saved")}catch(err){writeErr(err)}
+  try{const {error}=await sb.from("mas_config").upsert({id:"config_main",data:next,...stamp()},{onConflict:"id"});if(error)throw error;S.config=next;toast("Settings saved");render()}catch(err){writeErr(err)}
 });
 
 async function copyWeek(){
@@ -1258,20 +1226,14 @@ async function copyWeek(){
   const src=S.sessions.filter(s=>s.date>=ws&&s.date<=we&&s.status!=="Cancelled");
   if(!src.length){toast("No sessions to copy this week.");return}
   let n=0;
-  try{
-    for(const s of src){
-      const r={...s};delete r.id;r.date=addDays(s.date,7);r.status="Scheduled";r.present=null;
-      const row={id:uuid4(),...toRow("sessions",r),_at:new Date().toISOString(),_by:S.email||S.uid||null};
-      const{error}=await sb.from("mas_sessions").insert(row);
-      if(error)throw error;
-      n++;
-    }
-    S.week=addDays(ws,7);toast(n+" session(s) copied to next week");render();
+  try{for(const s of src){const r={...s};delete r.id;r.date=addDays(s.date,7);r.status="Scheduled";r.present=null;Object.assign(r,stamp());const {error}=await sb.from("mas_sessions").insert(r);if(error)throw error;n++}
+    S.week=addDays(ws,7);toast(n+" session(s) copied to next week");await loadAll();
   }catch(e){writeErr(e)}
 }
 
 function csv(rows){return "﻿"+rows.map(r=>r.map(v=>{const s=String(v??"");return /[";\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}).join(";")).join("\r\n")}
-function exportCsv(k){
+function dlCsv(name,rows){const blob=new Blob([csv(rows)],{type:"text/csv;charset=utf-8"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);document.body.removeChild(a)},100)}
+async function exportCsv(k){
   let rows,name;
   if(k==="sessions"){const we=addDays(S.week,6);name=`sessions_${S.week}.csv`;rows=[["Date","Start","End","Type","Sport","Level","Group","Facility","Lead","Status","Attended","Notes"],
     ...S.sessions.filter(s=>s.date>=S.week&&s.date<=we).sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start)).map(s=>[s.date,s.start,s.end,s.type,s.sport,s.level,(byId("groups",s.groupId)||{}).name,facName(s.facilityId),staffName(s.staffId),s.status,s.present,s.notes])]}
@@ -1279,126 +1241,90 @@ function exportCsv(k){
   if(k==="facilities"){name="facilities.csv";rows=[["Facility","Type","Sports","Capacity","Opens","Closes","Availability","Unavailable until","Notes"],...S.facilities.map(f=>[f.name,f.type,f.sports,f.capacity,f.open,f.close,f.status,f.until,f.notes])]}
   if(k==="groups"){name="pathway_groups.csv";rows=[["Sport","Level","Group","Status","Athletes","Target size","Head coach","Assistant","Sessions/wk","Ages","Notes"],...S.groups.map(g=>[g.sport,g.level,g.name,g.status,g.athletes,g.target,staffName(g.coachId),staffName(g.assistantId),g.perWeek,g.ages,g.notes])]}
   if(k==="tasks"){name="actions.csv";rows=[["Action","Workstream","Sport","Owner","Start","Due","Priority","Status","Effective status","Progress %","Completed on","Notes"],...S.tasks.map(t=>[t.title,t.area,t.sport,staffName(t.ownerId),t.start,t.due,t.priority,t.status,eff(t),t.progress,t.doneAt,t.notes])]}
-  if(!rows)return;
-  try{
-    const blob=new Blob([csv(rows)],{type:"text/csv;charset=utf-8"});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement("a");a.href=url;a.download=name;a.click();
-    setTimeout(()=>URL.revokeObjectURL(url),5000);
-  }catch(e){toast("Export not possible right now.")}
+  if(rows&&name)try{dlCsv(name,rows)}catch(e){toast("Export not possible right now.")}
+}
+
+/* ---------- Supabase data layer ---------- */
+async function loadAll(){
+  if(!sb)return;
+  /* Collections */
+  for(const c of COLS){
+    const tbl=TBL[c];
+    const {data,error}=await sb.from(tbl).select("*");
+    if(error){console.error("loadAll "+tbl,error);continue}
+    let rows=data||[];
+    /* Normalize DB column names to the internal field names the app uses */
+    if(c==="groups")rows=rows.map(g=>({...g,coachId:g.coach_id??g.coachId,assistantId:g.assistant_id??g.assistantId}));
+    if(c==="midan_weeks")rows=rows.map(w=>({...w,date:w.start??w.date}));
+    S[c]=rows;
+    if(c==="tasks")S.tasks=S.tasks.map(normTask);
+    S.loaded[c]=true;
+  }
+  /* Config row */
+  const {data:cfgRow}=await sb.from("mas_config").select("*").eq("id","config_main").maybeSingle();
+  if(cfgRow&&cfgRow.data){const d=cfgRow.data;S.config={...DEFAULT_CONFIG,...Object.fromEntries(Object.entries(d).filter(([k,v])=>Array.isArray(v)?v.length:v))}}
+  /* Brief row */
+  const {data:bRow}=await sb.from("mas_config").select("*").eq("id","brief_main").maybeSingle();
+  if(bRow&&bRow.data){const d=bRow.data;const a=document.activeElement;if(!a||!/^b(Dec|Ach|Ms|Bl)$/.test(a.id))S.brief={decisions:d.decisions||"",achieved:d.achieved||"",milestones:d.milestones||"",blocked:d.blocked||""}}
+  /* MIDAN meta */
+  const {data:mRow}=await sb.from("mas_config").select("*").eq("id","midan_meta").maybeSingle();
+  S.midan_meta=mRow&&mRow.data?mRow.data:null;
+  render();
+}
+
+/* PIN modal */
+function showPinModal(msg){
+  let dlgPin=document.getElementById("dlgPin");
+  if(!dlgPin){
+    dlgPin=document.createElement("dialog");dlgPin.id="dlgPin";
+    dlgPin.innerHTML=`<form id="pinForm" method="dialog" style="display:flex;flex-direction:column;gap:14px;padding:24px;min-width:280px">
+      <h2 style="margin:0;font:700 20px var(--f-display)">Enter PIN to edit</h2>
+      <p id="pinMsg" style="margin:0;font-size:13px;color:var(--muted)"></p>
+      <input id="pinInput" type="password" inputmode="numeric" placeholder="PIN" autocomplete="off" style="font-size:18px;text-align:center;letter-spacing:.2em;padding:10px">
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button type="button" id="pinCancel" style="padding:7px 14px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);cursor:pointer">Cancel</button>
+        <button type="submit" class="primary" style="padding:7px 14px;border-radius:8px;cursor:pointer">Unlock</button>
+      </div>
+    </form>`;
+    document.body.appendChild(dlgPin);
+    document.getElementById("pinForm").addEventListener("submit",e=>{e.preventDefault();
+      const p=document.getElementById("pinInput").value.trim();if(!p)return;
+      LS.set(PIN_HASH_KEY,hashPin(p));S.canWrite=true;S.uid="pin-user";
+      document.getElementById("mode").textContent="Editing";
+      if(dlgPin.close)dlgPin.close();render();
+    });
+    document.getElementById("pinCancel").addEventListener("click",()=>{if(dlgPin.close)dlgPin.close()});
+  }
+  document.getElementById("pinMsg").textContent=msg||"You need a PIN to add, edit or delete records.";
+  document.getElementById("pinInput").value="";
+  if(dlgPin.showModal)dlgPin.showModal();else dlgPin.setAttribute("open","");
+}
+/* Show the PIN button in the header */
+function renderPinBtn(){
+  const who=document.getElementById("who");if(!who)return;
+  if(!document.getElementById("pinBtn")){
+    const btn=document.createElement("button");btn.id="pinBtn";btn.textContent=writable()?"✎ Editing":"🔒 PIN";
+    btn.style.cssText="font-size:12px;padding:3px 10px;border-radius:12px;border:1px solid color-mix(in srgb,var(--head-fg) 40%,transparent);background:transparent;color:var(--head-fg);cursor:pointer";
+    btn.addEventListener("click",()=>{if(writable()){LS.set(PIN_HASH_KEY,"");S.canWrite=false;S.uid=null;btn.textContent="🔒 PIN";render()}else showPinModal()});
+    who.appendChild(btn);
+  }else{document.getElementById("pinBtn").textContent=writable()?"✎ Editing":"🔒 PIN"}
 }
 
 /* ---------- start-up ---------- */
 const h=(location.hash||"").slice(1);S.tab=V[h]?h:(V[LS.get("mas.tab")]?LS.get("mas.tab"):"today");
 render();
 
-/* Map col name → Supabase table name for COLS subscriptions */
-const COL_TO_TBL={staff:"mas_staff",facilities:"mas_facilities",sessions:"mas_sessions",groups:"mas_groups",tasks:"mas_tasks",reports:"mas_reports",midan_weeks:"mas_midan_weeks",midan_events:"mas_midan_events",midan_monthly:"mas_midan_monthly"};
-
-async function loadAllData(){
-  /* Load config */
-  try{
-    const{data:cfgRow}=await sb.from("mas_config").select("*").eq("id","main").single();
-    if(cfgRow){S.config={...DEFAULT_CONFIG,...Object.fromEntries(Object.entries(cfgRow).filter(([k,v])=>Array.isArray(v)?v.length:v&&!["id","_at","_by"].includes(k)))}}
-  }catch(e){}
-  /* Load brief */
-  try{
-    const{data:briefRow}=await sb.from("mas_config").select("*").eq("id","brief").single();
-    if(briefRow){const d=briefRow.data||{};S.brief={decisions:d.decisions||"",achieved:d.achieved||"",milestones:d.milestones||"",blocked:d.blocked||""}}
-  }catch(e){}
-  /* Load midan meta */
-  try{
-    const{data:metaRow}=await sb.from("mas_config").select("*").eq("id","midan_meta").single();
-    S.midan_meta=metaRow?metaRow.data:null;
-  }catch(e){}
-  /* Load all collections */
-  for(const c of COLS){
-    const tbl=COL_TO_TBL[c];if(!tbl)continue;
-    try{
-      const{data,error}=await sb.from(tbl).select("*");
-      if(!error&&data){
-        S[c]=data.map(row=>({...fromRow(c,row)}));
-        if(c==="tasks")S[c]=S[c].map(normTask);
-        S.loaded[c]=true;
-      }
-    }catch(e){console.warn("Load error",c,e)}
-  }
-  render();
-}
-
-function subscribeRealtime(){
-  /* Subscribe to changes in each table */
-  for(const c of COLS){
-    const tbl=COL_TO_TBL[c];if(!tbl)continue;
-    sb.channel("mas:"+tbl)
-      .on("postgres_changes",{event:"*",schema:"public",table:tbl},async()=>{
-        /* Reload entire collection on any change */
-        try{
-          const{data,error}=await sb.from(tbl).select("*");
-          if(!error&&data){
-            S[c]=data.map(row=>fromRow(c,row));
-            if(c==="tasks")S[c]=S[c].map(normTask);
-            S.loaded[c]=true;
-            render();
-          }
-        }catch(e){}
-      })
-      .subscribe();
-  }
-  /* Subscribe to mas_config for config/brief/midan_meta */
-  sb.channel("mas:mas_config")
-    .on("postgres_changes",{event:"*",schema:"public",table:"mas_config"},async({new:row})=>{
-      if(!row)return;
-      if(row.id==="main"){S.config={...DEFAULT_CONFIG,...Object.fromEntries(Object.entries(row).filter(([k,v])=>Array.isArray(v)?v.length:v&&!["id","_at","_by"].includes(k)))};render();}
-      if(row.id==="brief"){const d=row.data||{};S.brief={decisions:d.decisions||"",achieved:d.achieved||"",milestones:d.milestones||"",blocked:d.blocked||""};const a=document.activeElement;if(a&&/^b(Dec|Ach|Ms|Bl)$/.test(a.id))return;render();}
-      if(row.id==="midan_meta"){S.midan_meta=row.data||null;render();}
-    })
-    .subscribe();
-}
-
-/* Login dialog */
-const loginDlg=document.getElementById("loginDlg");
-const loginForm=document.getElementById("loginForm");
-loginForm.addEventListener("submit",async e=>{
-  e.preventDefault();
-  const btn=document.getElementById("loginBtn");
-  const errEl=document.getElementById("loginErr");
-  const email=document.getElementById("loginEmail").value.trim();
-  const pwd=document.getElementById("loginPwd").value;
-  btn.disabled=true;btn.textContent="Signing in…";errEl.style.display="none";
-  const{data,error}=await sb.auth.signInWithPassword({email,password:pwd});
-  if(error){errEl.textContent=error.message;errEl.style.display="block";btn.disabled=false;btn.textContent="Sign in";return}
-  loginDlg.close();
-});
-
 (async()=>{
-  /* Check existing session */
-  const{data:{session}}=await sb.auth.getSession();
-  if(session){
-    S.uid=session.user.id;S.email=session.user.email;
-    S.dbReady=true;
-    document.getElementById("mode").textContent=S.email+" · editing";
-    await loadAllData();
-    subscribeRealtime();
-  } else {
-    document.getElementById("mode").textContent="Not signed in";
-    loginDlg.showModal();
-  }
-  /* Listen to auth changes */
-  sb.auth.onAuthStateChange(async(event,session)=>{
-    if(session){
-      S.uid=session.user.id;S.email=session.user.email;
-      S.dbReady=true;
-      document.getElementById("mode").textContent=S.email+" · editing";
-      await loadAllData();
-      subscribeRealtime();
-    } else {
-      S.uid=null;S.email="";S.dbReady=false;
-      document.getElementById("mode").textContent="Not signed in";
-      render();
-      if(!loginDlg.open)loginDlg.showModal();
-    }
-  });
+  if(!window.supabase){document.getElementById("mode").textContent="Offline (no Supabase)";return}
+  sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:false}});
+  /* Auto-restore PIN from localStorage */
+  const savedHash=LS.get(PIN_HASH_KEY);
+  if(savedHash){S.canWrite=true;S.uid="pin-user"}
+  document.getElementById("mode").textContent=S.canWrite?"Editing (PIN)":"View only";
+  renderPinBtn();
+  await loadAll();
+  /* Refresh every 30 s to pick up changes from other devices */
+  setInterval(loadAll,30000);
 })();
 })();
 </script>
