@@ -1,0 +1,1406 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.47.10/dist/umd/supabase.min.js"></script>
+</head><body>
+<title>MAS Academy Pilotage</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: fixed header band + tabs; each view = summary on top, then table or operational grid. MIDAN blue navy identity. */
+:root{
+  --head:#0f2340; --head-fg:#e8f2ff; --coral:#2a78d6;
+  --bg:#f0f4f8; --surface:#ffffff; --sunk:#e6edf5; --line:#cdd9e5; --fg:#0f1c2e; --muted:#4a637e;
+  --accent:#1c3557; --accent-fg:#ffffff; --accent-soft:#dce8f5;
+  --ok:#1D7A4C; --warn:#A86400; --bad:#B42318; --idle:#737884; --run:#1F6F8B;
+  --s1:#eb6834; --s2:#2a78d6; --s3:#B5862A; --s4:#1baf7a; --s5:#6A4C9C;
+  --paper:#ffffff; --ink:#0f1c2e; --ink-soft:#4a637e; --rule:#cdd9e5; --paper-band:#0f2340;
+  --f-display:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --head:#0a1628; --head-fg:#cfe4f8; --coral:#3987e5;
+  --bg:#0b1420; --surface:#111e30; --sunk:#0e1a2c; --line:#1e3250; --fg:#d8e8f5; --muted:#7a9bbf;
+  --accent:#2a78d6; --accent-fg:#ffffff; --accent-soft:#152848;
+  --ok:#52C48C; --warn:#EDB04E; --bad:#F2796A; --idle:#9AA0AC; --run:#5BB5D3;
+  --s1:#d95926; --s2:#3987e5; --s3:#E0B45E; --s4:#3fbf3f; --s5:#A98BE0; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --head:#0a1628; --head-fg:#cfe4f8; --coral:#3987e5;
+  --bg:#0b1420; --surface:#111e30; --sunk:#0e1a2c; --line:#1e3250; --fg:#d8e8f5; --muted:#7a9bbf;
+  --accent:#2a78d6; --accent-fg:#ffffff; --accent-soft:#152848;
+  --ok:#52C48C; --warn:#EDB04E; --bad:#F2796A; --idle:#9AA0AC; --run:#5BB5D3;
+  --s1:#d95926; --s2:#3987e5; --s3:#E0B45E; --s4:#3fbf3f; --s5:#A98BE0; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--f-body);margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--head)}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:1320px;margin:0 auto}
+header.top{background:linear-gradient(135deg,var(--head) 0%,#1c3557 60%,#1e4a7a 100%);color:var(--head-fg);border-top:3px solid var(--coral)}
+header.top .wrap{padding-block:18px 0;display:flex;flex-direction:column;gap:12px}
+.brand{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 16px}
+.brand h1{font:800 clamp(24px,4vw,34px)/1.05 var(--f-display);margin:0;letter-spacing:-.01em}
+.brand p{margin:2px 0 0;font-size:13px;opacity:.85}
+.who{font-size:12px;opacity:.9;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.who .pill{background:color-mix(in srgb,var(--head-fg) 16%,transparent);color:var(--head-fg)}
+nav.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs a{flex:none;color:var(--head-fg);text-decoration:none;padding:10px 14px 12px;font-weight:600;font-size:14px;border-radius:10px 10px 0 0;opacity:.8;display:flex;gap:6px;align-items:center}
+nav.tabs a:hover{opacity:1}
+nav.tabs a[aria-current="page"]{background:var(--bg);color:var(--fg);opacity:1}
+nav.tabs .n{font:500 11px var(--f-mono);background:color-mix(in srgb,currentColor 16%,transparent);padding:1px 6px;border-radius:9px}
+main .wrap{padding-block:20px 60px;display:flex;flex-direction:column;gap:20px}
+
+h2{font:600 20px/1.2 var(--f-display);margin:0;text-wrap:balance}
+h3{font:600 15px/1.3 var(--f-body);margin:0}
+.eyebrow{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.muted{color:var(--muted)}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.bar .grp{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+button,.btn{font:600 13px var(--f-body);border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:7px 12px;border-radius:8px;cursor:pointer;line-height:1.2}
+button:hover{border-color:var(--muted)}
+button.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+button.danger{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 40%,var(--line))}
+button.danger.armed{background:var(--bad);color:var(--surface);border-color:var(--bad)}
+button.ghost{background:transparent;border-color:transparent;padding:4px 8px}
+button.add{border-style:dashed;color:var(--muted);background:transparent;width:100%;padding:6px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+select,input,textarea{font:14px var(--f-body);color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 9px;max-width:100%}
+select.mini{padding:3px 6px;font-size:12px}
+textarea{width:100%;min-height:80px;resize:vertical}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.cols{display:grid;gap:20px;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}
+@media (max-width:900px){.cols{grid-template-columns:minmax(0,1fr)}}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.kpi b{font:800 28px/1.1 var(--f-display);font-variant-numeric:tabular-nums}
+.kpi small{color:var(--muted);font-size:12px}
+.kpi.alert b{color:var(--bad)}
+
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap;background:var(--sunk);color:var(--muted)}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.pill.ok{color:var(--ok);background:color-mix(in srgb,var(--ok) 13%,transparent)}
+.pill.warn{color:var(--warn);background:color-mix(in srgb,var(--warn) 14%,transparent)}
+.pill.bad{color:var(--bad);background:color-mix(in srgb,var(--bad) 13%,transparent)}
+.pill.idle{color:var(--idle)}
+.pill.run{color:var(--run);background:color-mix(in srgb,var(--run) 13%,transparent)}
+.pill.plain::before{display:none}
+.tag{font-size:11px;font-weight:600;padding:1px 7px;border-radius:5px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.sport-dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:baseline}
+
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr.click{cursor:pointer}
+tr.click:hover td{background:color-mix(in srgb,var(--accent) 5%,transparent)}
+td.r,th.r{text-align:right}
+
+/* pathway matrix */
+table.matrix th,table.matrix td{border-right:1px solid var(--line)}
+table.matrix th:last-child,table.matrix td:last-child{border-right:none}
+table.matrix td{min-width:170px;padding:8px}
+table.matrix th.sport{min-width:150px;font:600 15px var(--f-body);letter-spacing:0;text-transform:none;color:var(--fg);background:var(--surface);vertical-align:top}
+table.matrix thead th{text-align:center}
+table.matrix thead th .lvl{display:block;font:800 13px var(--f-display);letter-spacing:.04em;color:var(--fg)}
+.cell{display:flex;flex-direction:column;gap:6px}
+.grp-card{border:1px solid var(--line);border-left:3px solid var(--sc,var(--accent));border-radius:8px;padding:6px 8px;background:var(--bg);cursor:pointer;display:flex;flex-direction:column;gap:2px;text-align:left;font:inherit;color:inherit;width:100%}
+.grp-card:hover{border-color:var(--muted);border-left-color:var(--sc,var(--accent))}
+.grp-card .t{font-weight:600;font-size:13px}
+.grp-card .m{font-size:12px;color:var(--muted)}
+.grp-card .m.miss{color:var(--bad)}
+.tot{font-size:12px;color:var(--muted)}
+.tot b{color:var(--fg);font:600 15px var(--f-mono)}
+
+/* weekly schedule */
+.week{display:grid;grid-template-columns:repeat(7,minmax(150px,1fr));gap:8px;min-width:1080px;padding:8px}
+.day{display:flex;flex-direction:column;gap:6px;min-width:0}
+.day h4{margin:0;font:600 13px var(--f-body);display:flex;justify-content:space-between;align-items:baseline;padding:6px 4px;border-bottom:2px solid var(--line)}
+.day.today h4{border-bottom-color:var(--accent);color:var(--accent)}
+.sess{border:1px solid var(--line);border-left:3px solid var(--sc,var(--accent));border-radius:8px;padding:6px 8px;background:var(--surface);cursor:pointer;font-size:12px;display:flex;flex-direction:column;gap:1px;text-align:left;color:inherit;font-family:inherit;width:100%}
+.sess .h{font:500 12px var(--f-mono);color:var(--muted);display:flex;justify-content:space-between;gap:6px}
+.sess .t{font-weight:600;font-size:13px}
+.sess.cancel{opacity:.55;text-decoration:line-through}
+.sess.conf{box-shadow:inset 0 0 0 1px var(--bad)}
+.flag{color:var(--bad);font-weight:600;font-size:11px}
+
+/* day list */
+.agenda{display:flex;flex-direction:column}
+.agenda .row{display:grid;grid-template-columns:92px minmax(0,1fr) auto;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);align-items:start}
+.agenda .row:last-child{border-bottom:none}
+.agenda .time{font:500 13px var(--f-mono);font-variant-numeric:tabular-nums}
+.agenda .what{display:flex;flex-direction:column;gap:2px;min-width:0}
+.agenda .acts{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+@media (max-width:560px){.agenda .row{grid-template-columns:70px minmax(0,1fr)}.agenda .acts{grid-column:2;justify-content:flex-start}}
+
+/* facility occupancy */
+.occ{display:flex;flex-direction:column;gap:10px}
+.occ .f{display:grid;grid-template-columns:minmax(110px,170px) minmax(0,1fr);gap:10px;align-items:center}
+.occ .f .nm{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:2px;min-width:0}
+.track{position:relative;height:26px;background:var(--sunk);border-radius:6px;overflow:hidden}
+.track.off{background:repeating-linear-gradient(135deg,var(--sunk) 0 6px,color-mix(in srgb,var(--bad) 12%,var(--sunk)) 6px 12px)}
+.track .blk{position:absolute;top:3px;bottom:3px;border-radius:4px;background:var(--sc,var(--accent));opacity:.85;cursor:pointer;border:none;padding:0}
+.track .blk.cancel{opacity:.25}
+.ticks{position:relative;height:14px;margin-left:calc(min(170px,40%) + 10px)}
+.ticks span{position:absolute;transform:translateX(-50%);font:500 10px var(--f-mono);color:var(--muted)}
+.axis{display:grid;grid-template-columns:minmax(110px,170px) minmax(0,1fr);gap:10px}
+.axis .ticks{margin:0}
+
+.alerts{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.alerts li{display:grid;grid-template-columns:8px minmax(0,1fr);gap:10px;font-size:13px;align-items:start}
+.alerts li::before{content:"";width:8px;height:8px;border-radius:50%;margin-top:6px;background:var(--sev,var(--warn))}
+
+/* kanban */
+.board{display:grid;grid-template-columns:repeat(4,minmax(220px,1fr));gap:12px;min-width:920px;padding:12px}
+.lane{display:flex;flex-direction:column;gap:8px;min-width:0}
+.lane h4{margin:0;font:600 13px var(--f-body);display:flex;justify-content:space-between;padding:4px 2px}
+.card{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:6px;font-size:13px}
+.card .t{font-weight:600;cursor:pointer}
+.card .meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.card.late{border-color:color-mix(in srgb,var(--bad) 45%,var(--line))}
+
+.empty{padding:22px;text-align:center;color:var(--muted);font-size:14px;display:flex;flex-direction:column;gap:10px;align-items:center}
+.ro-note{font-size:13px;background:var(--accent-soft);color:var(--fg);border-radius:10px;padding:10px 14px}
+
+dialog{border:1px solid var(--line);border-radius:14px;padding:0;background:var(--surface);color:var(--fg);width:min(560px,calc(100vw - 24px));max-height:calc(100vh - 40px)}
+dialog::backdrop{background:rgba(20,10,14,.45)}
+dialog form{display:flex;flex-direction:column;gap:14px;padding:18px}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fields label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--muted);min-width:0}
+.fields label.wide{grid-column:1/-1}
+.fields input,.fields select,.fields textarea{width:100%}
+@media (max-width:480px){.fields{grid-template-columns:1fr}}
+.dlg-foot{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center}
+.stamp{font-size:11px;color:var(--muted)}
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:13px;z-index:20;max-width:calc(100vw - 32px)}
+.loading{color:var(--muted);font-size:13px}
+@media (prefers-reduced-motion:no-preference){.grp-card,.sess,button{transition:border-color .15s,background .15s}}
+
+/* progress */
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--surface)}
+.seg button{border:none;border-radius:0;background:transparent;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
+.prog{height:8px;border-radius:5px;background:var(--sunk);overflow:hidden;min-width:60px}
+.prog i{display:block;height:100%;background:var(--pc,var(--accent));border-radius:5px}
+.prog-row{display:flex;align-items:center;gap:8px}
+.prog-row .num{font-size:12px;min-width:38px;text-align:right}
+.stack{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--sunk);min-width:120px}
+.stack span{display:block;height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.big{font:800 46px/1 var(--f-display);font-variant-numeric:tabular-nums}
+.gauge-wrap{display:grid;grid-template-columns:auto minmax(0,1fr);gap:24px;align-items:center}
+@media (max-width:640px){.gauge-wrap{grid-template-columns:minmax(0,1fr)}}
+.chart svg{width:100%;height:auto;display:block}
+.chart text{font:500 10px var(--f-mono);fill:var(--muted)}
+.gantt{min-width:900px}
+.gantt .gr{display:grid;grid-template-columns:260px minmax(0,1fr);border-bottom:1px solid var(--line);align-items:center}
+.gantt .gr.h{background:var(--sunk);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.gantt .gr.dom{background:var(--bg);font-weight:600;font-size:13px}
+.gantt .lab{padding:8px 12px;font-size:13px;min-width:0;display:flex;flex-direction:column;gap:2px;cursor:pointer}
+.gantt .lab.static{cursor:default}
+.gantt .lane2{position:relative;height:34px}
+.gantt .gbar{position:absolute;top:9px;height:16px;border-radius:5px;background:color-mix(in srgb,var(--gc) 22%,var(--surface));border:1px solid var(--gc);overflow:hidden;cursor:pointer;padding:0}
+.gantt .gbar i{display:block;height:100%;background:var(--gc)}
+.gantt .gbar.pt{width:10px;border-radius:50%}
+.gantt .now{position:absolute;top:0;bottom:0;width:2px;background:var(--coral)}
+.gantt .wk{position:absolute;top:0;bottom:0;border-left:1px dashed var(--line)}
+.gantt .wkl{position:absolute;top:8px;font:500 10px var(--f-mono);color:var(--muted);transform:translateX(3px);white-space:nowrap}
+.hist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;font-size:12px;max-height:150px;overflow:auto}
+.hist li{display:flex;gap:8px}
+
+/* CEO report: fixed paper sheet for PDF export */
+.report-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:end}
+.report-tools label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--muted)}
+.sheet-wrap{overflow-x:auto;background:var(--sunk);border-radius:12px;padding:16px}
+.sheet{width:794px;margin:0 auto;background:var(--paper);color:var(--ink);font:13px/1.5 var(--f-body);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.rp-block{padding:14px 40px}
+.rp-head{background:var(--paper-band);color:var(--head-fg);padding:26px 40px 20px;border-top:5px solid var(--coral)}
+.rp-head h1{font:800 26px/1.1 var(--f-display);margin:4px 0}
+.rp-head .s{font-size:12px;opacity:.85}
+.rp-head .meta{display:flex;justify-content:space-between;gap:12px;margin-top:12px;font-size:12px}
+.sheet h2{font:700 15px/1.2 var(--f-display);color:var(--paper-band);margin:0 0 8px;padding-bottom:5px;border-bottom:2px solid var(--paper-band)}
+.sheet table{font-size:12px}
+.sheet th{background:var(--sunk);color:var(--ink-soft);font-size:10px}
+.sheet th,.sheet td{padding:5px 8px;border-bottom:1px solid var(--rule)}
+.sheet .kg{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.sheet .k{border:1px solid var(--rule);border-radius:8px;padding:8px 10px}
+.sheet .k b{display:block;font:800 22px/1.1 var(--f-display);color:var(--paper-band)}
+.sheet .k small{color:var(--ink-soft);font-size:11px}
+.sheet .bar2{height:7px;background:var(--sunk);border-radius:4px;overflow:hidden;min-width:80px}
+.sheet .bar2 i{display:block;height:100%;background:var(--paper-band)}
+.sheet ul{margin:0;padding-left:18px}
+.sheet li{margin:2px 0}
+.sheet .none{color:var(--ink-soft);font-style:italic}
+.sheet .lines{height:26px;border-bottom:1px solid var(--rule)}
+.sheet .sig{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:6px}
+.sheet .sig div{border-top:1px solid var(--ink);padding-top:4px;font-size:11px;color:var(--ink-soft);margin-top:40px}
+.sheet .st{font-weight:600}
+.sheet .st.ok{color:var(--ok)}.sheet .st.warn{color:var(--warn)}.sheet .st.bad{color:var(--bad)}.sheet .st.idle{color:var(--idle)}.sheet .st.run{color:var(--run)}
+.sheet .free{white-space:pre-wrap}
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <div>
+        <h1>MAS Academy</h1>
+        <p>MAS Women's Sports Center · Daily management and monitoring of the PATHWAY programme</p>
+      </div>
+      <div class="who" id="who"><span class="pill plain" id="season">Season</span><span id="mode">Connecting…</span></div>
+    </div>
+    <nav class="tabs" id="tabs" aria-label="Views"></nav>
+  </div>
+</header>
+<main><div class="wrap" id="view"><p class="loading">Loading academy data…</p></div></main>
+
+<dialog id="dlg"><form id="dlgForm" method="dialog"></form></dialog>
+<dialog id="loginDlg" style="width:min(360px,calc(100vw - 24px));border:1px solid var(--line);border-radius:14px;padding:0;background:var(--surface);color:var(--fg)">
+  <form id="loginForm" style="display:flex;flex-direction:column;gap:14px;padding:24px">
+    <div style="display:flex;flex-direction:column;gap:4px">
+      <div style="font:800 18px/1.2 var(--f-display);color:var(--accent)">MAS Academy</div>
+      <div style="font-size:13px;color:var(--muted)">Sign in to view and edit the academy data</div>
+    </div>
+    <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--muted)">Email<input id="loginEmail" type="email" autocomplete="username" required style="font:14px var(--f-body);color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%"></label>
+    <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--muted)">Password<input id="loginPwd" type="password" autocomplete="current-password" required style="font:14px var(--f-body);color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%"></label>
+    <div id="loginErr" style="display:none;font-size:12px;color:var(--bad);border:1px solid color-mix(in srgb,var(--bad) 30%,var(--line));border-radius:8px;padding:8px 10px"></div>
+    <button type="submit" class="primary" id="loginBtn" style="margin-top:4px">Sign in</button>
+  </form>
+</dialog>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function(){
+const DEFAULT_CONFIG={
+  season:"2026-2027",
+  sports:["Athletics","Basketball","Fencing","Volleyball","Tennis"],
+  levels:["EXPLORE","DETECT","SELECT","DEVELOP","EXCEL"],
+  teams:["Technical","Administrative","Medical and sports science","Support and logistics"],
+  areas:["PATHWAY","Staff","Facilities","Administration","Recruitment","Partners","Events"]
+};
+const STAFF_STATUS=["Active","On leave","Recruiting","Recruitment on hold","Departed"];
+const FAC_STATUS=["Available","Partly available","Under maintenance","Unavailable"];
+const FAC_TYPES=["Hall","Field","Track","Court","Gym","Fencing hall","Office","Locker room","Other"];
+const SESS_STATUS=["Scheduled","Delivered","Cancelled","Postponed"];
+const SESS_TYPES=["Training","Physical preparation","Testing and assessment","Competition","Talent identification","Technical meeting","Other"];
+const GRP_STATUS=["Active","Being formed","Suspended"];
+const TASK_STATUS=["Not started","In progress","Blocked","Completed"];
+const EFF=[["Not started","var(--idle)"],["In progress","var(--run)"],["Blocked","var(--warn)"],["Overdue","var(--bad)"],["Completed","var(--ok)"]];
+const PRIO=["High","Medium","Low"];
+const TABS=[["today","Today"],["pathway","PATHWAY matrix"],["schedule","Schedule"],["season","Season (MIDAN)"],["facilities","Facilities"],["staffs","Staff"],["actions","Progress"],["report","CEO report"],["settings","Settings"]];
+const COLS=["staff","facilities","sessions","groups","tasks","reports","midan_weeks","midan_events","midan_monthly"];
+
+const LS={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+const pad=n=>String(n).padStart(2,"0");
+const iso=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const parse=s=>{const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
+const addDays=(s,n)=>{const d=parse(s);d.setDate(d.getDate()+n);return iso(d)};
+const today=()=>iso(new Date());
+const weekStart=s=>{const d=parse(s);d.setDate(d.getDate()-d.getDay());return iso(d)};
+const DOW=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const fmtDay=s=>{const d=parse(s);return DOW[d.getDay()]+" "+d.getDate()+" "+["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][d.getMonth()]};
+const fmtLong=s=>{const d=parse(s);return d.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"})};
+const mins=t=>{if(!t)return null;const [h,m]=t.split(":").map(Number);return h*60+(m||0)};
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+/* ---------- Supabase ---------- */
+const SUPABASE_URL="https://gznrwfokvxozhpnnraic.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imf6bnJ3Zm9rdnhvemhwbm5yYWljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk1MTg0NjEsImV4cCI6MjA1NTA5NDQ2MX0.gJBrTVFnFRGkDR3nJeNiRzD7DvUMv5aS6_wVRCOJlhI";
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+
+/* camelCase → snake_case column mapping for tables that have FK id fields */
+const TO_SB={groupId:"group_id",facilityId:"facility_id",staffId:"staff_id",coachId:"coach_id",assistantId:"assistant_id",ownerId:"owner_id",perWeek:"per_week",doneAt:"done_at"};
+const FROM_SB={group_id:"groupId",facility_id:"facilityId",staff_id:"staffId",coach_id:"coachId",assistant_id:"assistantId",owner_id:"ownerId",per_week:"perWeek",done_at:"doneAt"};
+const TBL={staff:"mas_staff",facilities:"mas_facilities",sessions:"mas_sessions",groups:"mas_groups",tasks:"mas_tasks",reports:"mas_reports",midan_weeks:"mas_midan_weeks",midan_events:"mas_midan_events",midan_monthly:"mas_midan_monthly",config:"mas_config",brief:"mas_config"};
+
+/* Convert JS camelCase object to Supabase snake_case row */
+function toRow(col,obj){
+  const r={};
+  for(const[k,v]of Object.entries(obj)){
+    const sk=TO_SB[k]||k;
+    r[sk]=v;
+  }
+  return r;
+}
+/* Convert Supabase snake_case row to JS camelCase object */
+function fromRow(col,row){
+  const o={};
+  for(const[k,v]of Object.entries(row)){
+    const jk=FROM_SB[k]||k;
+    o[jk]=v;
+  }
+  return o;
+}
+
+const S={config:DEFAULT_CONFIG,staff:[],facilities:[],sessions:[],groups:[],tasks:[],reports:[],midan_weeks:[],midan_events:[],midan_monthly:[],midan_meta:null,loaded:{},
+  av:LS.get("mas.av")||"summary",gs:"",rpCurrent:null,
+  brief:{decisions:"",achieved:"",milestones:"",blocked:""},
+  rp:{period:LS.get("mas.rp.period")||"month",from:"",to:"",lang:LS.get("mas.rp.lang")||"en",author:LS.get("mas.rp.author")||"Mohammed Benhamida, MAS WSC Consultant",comments:LS.get("mas.rp.comments")||"",view:""},
+  uid:null,email:"",dbReady:false,
+  tab:"today",day:today(),week:weekStart(today()),
+  f:{psport:"",pfac:"",pstaff:"",steam:"",sstat:"",tarea:"",towner:"",tdone:LS.get("mas.tdone")==="1",smonth:""}};
+
+const writable=()=>!!S.uid&&S.dbReady;
+const cfg=()=>S.config;
+const sportColor=sp=>{const i=cfg().sports.indexOf(sp);return i<0?"var(--idle)":"var(--s"+(i%5+1)+")"};
+const byId=(col,id)=>S[col].find(x=>x.id===id);
+const staffName=id=>{const s=byId("staff",id);return s?s.name:""};
+const facName=id=>{const f=byId("facilities",id);return f?f.name:""};
+const statusClass=v=>({"Active":"ok","Available":"ok","Delivered":"ok","Completed":"ok","In progress":"run",
+  "On leave":"warn","Partly available":"warn","Postponed":"warn","Being formed":"warn","Recruiting":"warn","Recruitment on hold":"warn",
+  "Under maintenance":"bad","Unavailable":"bad","Cancelled":"bad","Blocked":"warn","Overdue":"bad","Suspended":"bad","Departed":"idle","Not started":"idle",
+  "Scheduled":"idle","To do":"idle","Not submitted":"idle"}[v]||"idle");
+const pill=v=>v?`<span class="pill ${statusClass(v)}">${esc(v)}</span>`:"";
+const opts=(list,sel,empty)=>(empty!==undefined?`<option value="">${esc(empty)}</option>`:"")+list.map(o=>{const v=typeof o==="object"?o.v:o,l=typeof o==="object"?o.l:o;return `<option value="${esc(v)}"${v===sel?" selected":""}>${esc(l)}</option>`}).join("");
+const staffOpts=()=>S.staff.slice().sort((a,b)=>(a.name||"").localeCompare(b.name||"")).map(s=>({v:s.id,l:s.name+(s.role?" ("+s.role+")":"")}));
+const facOpts=()=>S.facilities.slice().sort((a,b)=>(a.name||"").localeCompare(b.name||"")).map(f=>({v:f.id,l:f.name}));
+const groupOpts=()=>S.groups.map(g=>({v:g.id,l:g.sport+" · "+g.level+" · "+(g.name||"Group")}));
+
+/* ---------- form schemas ---------- */
+const SCHEMAS={
+  staff:{title:"staff member",fields:[
+    {k:"name",l:"Full name",t:"text",req:1,w:1},
+    {k:"role",l:"Position",t:"text",ph:"Head coach, coordinator…"},
+    {k:"team",l:"Department",t:"select",o:()=>cfg().teams},
+    {k:"sport",l:"Sport",t:"select",o:()=>[...cfg().sports,"All sports"]},
+    {k:"status",l:"Status",t:"select",o:()=>STAFF_STATUS},
+    {k:"start",l:"Start date",t:"date"},
+    {k:"contact",l:"Contact (phone or e-mail)",t:"text"},
+    {k:"notes",l:"Notes",t:"textarea",w:1}]},
+  facilities:{title:"facility",fields:[
+    {k:"name",l:"Name",t:"text",req:1,w:1,ph:"Hall A, outdoor field 1…"},
+    {k:"type",l:"Type",t:"select",o:()=>FAC_TYPES},
+    {k:"status",l:"Availability",t:"select",o:()=>FAC_STATUS},
+    {k:"sports",l:"Sports hosted",t:"text",ph:"Basketball, Volleyball"},
+    {k:"capacity",l:"Capacity (people)",t:"number"},
+    {k:"open",l:"Opens",t:"time"},
+    {k:"close",l:"Closes",t:"time"},
+    {k:"until",l:"Unavailable until",t:"date"},
+    {k:"notes",l:"Notes (equipment, constraints)",t:"textarea",w:1}]},
+  groups:{title:"PATHWAY group",fields:[
+    {k:"sport",l:"Sport",t:"select",o:()=>cfg().sports,req:1},
+    {k:"level",l:"Level",t:"select",o:()=>cfg().levels,req:1},
+    {k:"name",l:"Group name",t:"text",ph:"U12 A, group 1…"},
+    {k:"status",l:"Status",t:"select",o:()=>GRP_STATUS},
+    {k:"athletes",l:"Enrolled athletes",t:"number"},
+    {k:"target",l:"Target size",t:"number"},
+    {k:"coachId",l:"Head coach",t:"select",o:staffOpts,empty:"Unassigned"},
+    {k:"assistantId",l:"Assistant",t:"select",o:staffOpts,empty:"Unassigned"},
+    {k:"perWeek",l:"Sessions per week",t:"number"},
+    {k:"ages",l:"Age range",t:"text"},
+    {k:"notes",l:"Notes",t:"textarea",w:1}]},
+  sessions:{title:"session",fields:[
+    {k:"date",l:"Date",t:"date",req:1},
+    {k:"type",l:"Type",t:"select",o:()=>SESS_TYPES},
+    {k:"start",l:"Start",t:"time",req:1},
+    {k:"end",l:"End",t:"time",req:1},
+    {k:"sport",l:"Sport",t:"select",o:()=>[...cfg().sports,"All sports"]},
+    {k:"level",l:"Level",t:"select",o:()=>cfg().levels,empty:"All levels"},
+    {k:"groupId",l:"Group",t:"select",o:groupOpts,empty:"No specific group",w:1},
+    {k:"facilityId",l:"Facility",t:"select",o:facOpts,empty:"Unassigned"},
+    {k:"staffId",l:"Lead",t:"select",o:staffOpts,empty:"Unassigned"},
+    {k:"status",l:"Status",t:"select",o:()=>SESS_STATUS},
+    {k:"present",l:"Attended",t:"number"},
+    {k:"notes",l:"Content, observations",t:"textarea",w:1}]},
+  tasks:{title:"action",fields:[
+    {k:"title",l:"Action",t:"text",req:1,w:1},
+    {k:"area",l:"Workstream",t:"select",o:()=>cfg().areas},
+    {k:"sport",l:"Sport",t:"select",o:()=>[...cfg().sports,"All sports"],empty:"Not applicable"},
+    {k:"ownerId",l:"Owner",t:"select",o:staffOpts,empty:"Unassigned"},
+    {k:"priority",l:"Priority",t:"select",o:()=>PRIO},
+    {k:"start",l:"Planned start",t:"date"},
+    {k:"due",l:"Due date",t:"date"},
+    {k:"status",l:"Status",t:"select",o:()=>TASK_STATUS},
+    {k:"progress",l:"Progress (%)",t:"number",max:100,step:5},
+    {k:"notes",l:"Notes, status update",t:"textarea",w:1}]}
+};
+const DEFAULTS={staff:{status:"Active",team:"Technical"},facilities:{status:"Available",type:"Hall"},groups:{status:"Active"},
+  sessions:{status:"Scheduled",type:"Training",start:"16:00",end:"17:30"},tasks:{status:"Not started",priority:"Medium",progress:0}};
+
+/* ---------- UI utilities ---------- */
+let toastT;
+function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,3200)}
+function writeErr(e){
+  console.error("DB error",e);
+  toast("Could not save right now. Please try again shortly.");
+}
+const stamp=()=>({_at:new Date().toISOString(),_by:S.email||S.uid||null});
+/* Generate a UUID v4 */
+const uuid4=()=>([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16));
+
+async function save(col,id,data){
+  if(!writable())return;
+  if(col==="tasks")data=withHist(id?byId("tasks",id):null,data);
+  const tbl=TBL[col];if(!tbl){toast("Unknown collection: "+col);return}
+  const row={...toRow(col,data),...{_at:new Date().toISOString(),_by:S.email||S.uid||null}};
+  if(id){row.id=id;}else{row.id=uuid4();}
+  try{
+    const{error}=await sb.from(tbl).upsert(row,{onConflict:"id"});
+    if(error)throw error;
+    toast("Saved");
+  }catch(e){writeErr(e)}
+}
+async function patch(col,id,data){
+  if(!writable())return;
+  if(col==="tasks"){const old=byId("tasks",id);if(!old)return;const full=withHist(old,{...old,...data});
+    data={status:full.status,progress:full.progress,doneAt:full.doneAt,history:full.history,created:full.created,start:full.start||null}}
+  const tbl=TBL[col];if(!tbl)return;
+  const row={id:id,...toRow(col,data),_at:new Date().toISOString(),_by:S.email||S.uid||null};
+  try{
+    const{error}=await sb.from(tbl).upsert(row,{onConflict:"id"});
+    if(error)throw error;
+    toast("Updated");
+  }catch(e){writeErr(e)}
+}
+async function remove(col,id){
+  if(!writable())return;
+  const tbl=TBL[col];if(!tbl)return;
+  try{
+    const{error}=await sb.from(tbl).delete().eq("id",id);
+    if(error)throw error;
+    toast("Deleted");
+  }catch(e){writeErr(e)}
+}
+
+/* ---------- modal form ---------- */
+const dlg=document.getElementById("dlg"),form=document.getElementById("dlgForm");
+let editing=null;
+async function openForm(col,id,preset){
+  const sc=SCHEMAS[col];const rec=id?byId(col,id):null;
+  const data={...DEFAULTS[col],...(preset||{}),...(rec||{})};
+  editing={col,id};
+  const ro=!writable();
+  form.innerHTML=`<div class="bar"><h2>${rec?"Edit":"Add"} ${esc(sc.title)}</h2><button type="button" class="ghost" data-close aria-label="Close">Close</button></div>
+  <div class="fields">${sc.fields.map(f=>{
+    const v=data[f.k]??"";const idA=`f_${col}_${f.k}`;const dis=ro?" disabled":"";
+    let ctl;
+    if(f.t==="select"){ctl=`<select id="${idA}" name="${f.k}"${dis}>${opts(f.o(),String(v),f.empty)}</select>`}
+    else if(f.t==="textarea"){ctl=`<textarea id="${idA}" name="${f.k}"${dis}>${esc(v)}</textarea>`}
+    else ctl=`<input id="${idA}" name="${f.k}" type="${f.t}" value="${esc(v)}"${f.ph?` placeholder="${esc(f.ph)}"`:""}${f.req?" required":""}${f.t==="number"?` min="0" step="${f.step||1}"${f.max?` max="${f.max}"`:""}`:""}${dis}>`;
+    return `<label class="${f.w?"wide":""}" for="${idA}">${esc(f.l)}${ctl}</label>`}).join("")}</div>
+  <div class="dlg-foot"><span class="stamp" id="stamp"></span><div class="grp" style="display:flex;gap:8px">
+    ${rec&&!ro?`<button type="button" class="danger" data-del>Delete</button>`:""}
+    ${col==="sessions"&&rec&&!ro?`<button type="button" data-dup>Duplicate</button>`:""}
+    ${ro?"":`<button type="submit" class="primary">Save</button>`}</div></div>`;
+  if(dlg.showModal)dlg.showModal();else dlg.setAttribute("open","");
+  if(col==="tasks"&&rec&&Array.isArray(rec.history)&&rec.history.length){form.querySelector(".fields").insertAdjacentHTML("beforeend",`<div class="wide" style="grid-column:1/-1"><div class="eyebrow" style="margin-bottom:4px">Progress history</div><ul class="hist">${rec.history.slice().reverse().map(h=>`<li><span class="num muted">${esc(fmtDay(h.d))}</span>${pill(h.s)}<span class="num">${h.p} %</span></li>`).join("")}</ul></div>`)}
+  if(rec&&rec._at){const who=await nameOf(rec._by);const el=document.getElementById("stamp");if(el)el.textContent="Last updated: "+new Date(rec._at).toLocaleString("en-GB",{dateStyle:"short",timeStyle:"short"})+(who?" by "+who:"")}
+}
+function closeForm(){editing=null;dlg.close?dlg.close():dlg.removeAttribute("open")}
+form.addEventListener("click",e=>{
+  if(e.target.closest("[data-close]")){closeForm();return}
+  const del=e.target.closest("[data-del]");
+  if(del){if(!del.classList.contains("armed")){del.classList.add("armed");del.textContent="Confirm deletion";return}
+    const {col,id}=editing;closeForm();remove(col,id);return}
+  if(e.target.closest("[data-dup]")){const {col,id}=editing;const r={...byId(col,id)};delete r.id;delete r._at;delete r._by;r.status="Scheduled";r.present="";closeForm();openForm(col,null,r)}
+});
+form.addEventListener("submit",e=>{
+  e.preventDefault();if(!editing)return;
+  const {col,id}=editing;const sc=SCHEMAS[col];const out={};
+  for(const f of sc.fields){const el=form.elements[f.k];let v=el?el.value:"";if(f.t==="number")v=v===""?null:Number(v);out[f.k]=v}
+  if(col==="sessions"&&out.start&&out.end&&mins(out.end)<=mins(out.start)){toast("End time must be after start time.");return}
+  if(col==="sessions"&&out.groupId){const g=byId("groups",out.groupId);if(g){if(!out.sport)out.sport=g.sport;if(!out.level)out.level=g.level}}
+  closeForm();save(col,id,out);
+});
+
+async function nameOf(uid){
+  /* With Supabase we store the email/uid in _by; we can't resolve display names from uid alone */
+  return uid||"";
+}
+
+/* ---------- analysis ---------- */
+const active=s=>s.status!=="Cancelled"&&s.status!=="Postponed";
+function conflictsFor(list){
+  const out=[];const flagged=new Set();
+  const L=list.filter(active);
+  for(let i=0;i<L.length;i++)for(let j=i+1;j<L.length;j++){
+    const a=L[i],b=L[j];if(a.date!==b.date)continue;
+    const as=mins(a.start),ae=mins(a.end),bs=mins(b.start),be=mins(b.end);
+    if(as==null||bs==null||!(as<be&&bs<ae))continue;
+    if(a.facilityId&&a.facilityId===b.facilityId){out.push({sev:"bad",d:a.date,txt:`${facName(a.facilityId)} double-booked (${a.start}-${a.end} and ${b.start}-${b.end})`});flagged.add(a.id);flagged.add(b.id)}
+    if(a.staffId&&a.staffId===b.staffId){out.push({sev:"bad",d:a.date,txt:`${staffName(a.staffId)} assigned to two overlapping sessions (${a.start}-${a.end})`});flagged.add(a.id);flagged.add(b.id)}
+  }
+  for(const s of L){
+    const f=s.facilityId&&byId("facilities",s.facilityId);
+    if(f&&(f.status==="Under maintenance"||f.status==="Unavailable")&&(!f.until||s.date<=f.until)){out.push({sev:"bad",d:s.date,txt:`Session ${s.start} at ${f.name}, currently "${f.status}"`});flagged.add(s.id)}
+    if(f&&f.open&&f.close&&(mins(s.start)<mins(f.open)||mins(s.end)>mins(f.close))){out.push({sev:"warn",d:s.date,txt:`Session ${s.start}-${s.end} outside ${f.name} opening hours (${f.open}-${f.close})`});flagged.add(s.id)}
+    const st=s.staffId&&byId("staff",s.staffId);
+    if(st&&(st.status==="On leave"||st.status==="Departed")){out.push({sev:"warn",d:s.date,txt:`${st.name} is "${st.status}" but leads the ${s.start} session`});flagged.add(s.id)}
+    if(!s.staffId){out.push({sev:"warn",d:s.date,txt:`Session ${s.start} (${s.sport||"sport not specified"}) has no lead`});flagged.add(s.id)}
+    if(!s.facilityId){out.push({sev:"warn",d:s.date,txt:`Session ${s.start} (${s.sport||"sport not specified"}) has no facility`});flagged.add(s.id)}
+  }
+  return {list:out,flagged};
+}
+const normTask=t=>{const s=(!t.status||t.status==="To do")?"Not started":t.status;let p=Number(t.progress);if(t.progress==null||t.progress===""||!isFinite(p))p=s==="Completed"?100:0;if(s==="Completed")p=100;return {...t,status:s,progress:Math.max(0,Math.min(100,Math.round(p)))}};
+const isLate=t=>t.status!=="Completed"&&!!t.due&&t.due<today();
+const eff=t=>isLate(t)&&t.status!=="Blocked"?"Overdue":t.status;
+const avgProg=l=>l.length?Math.round(l.reduce((n,t)=>n+(Number(t.progress)||0),0)/l.length):0;
+function withHist(old,data){
+  const d={...data};delete d.id;
+  if(d.progress==null||d.progress==="")d.progress=old?old.progress:0;
+  d.progress=Math.max(0,Math.min(100,Math.round(Number(d.progress)||0)));
+  if(d.status==="Completed")d.progress=100;
+  if(d.status==="Completed")d.doneAt=(old&&old.status==="Completed"&&old.doneAt)||today();else d.doneAt=null;
+  if(d.status==="In progress"&&!d.start&&(!old||old.status==="Not started"))d.start=today();
+  const h=old&&Array.isArray(old.history)?old.history.slice(-80):[];
+  if(!old||old.status!==d.status||old.progress!==d.progress)h.push({d:today(),s:d.status,p:d.progress});
+  d.history=h;d.created=(old&&(old.created||(old._at||"").slice(0,10)))||today();
+  return d;
+}
+const lateTasks=()=>S.tasks.filter(isLate);
+const sessLabel=s=>{const g=s.groupId&&byId("groups",s.groupId);return (s.sport||"All sports")+(s.level?" · "+s.level:"")+(g&&g.name?" · "+g.name:"")};
+
+/* ---------- views ---------- */
+const V={};
+const roNote=()=>!S.dbReady?`<div class="ro-note">Sign in to view and edit the academy data.</div>`:(!writable()?`<div class="ro-note">Connecting to database…</div>`:"");
+const addBtn=(col,label,preset)=>writable()?`<button class="primary" data-add="${col}"${preset?` data-preset='${esc(JSON.stringify(preset))}'`:""}>${esc(label)}</button>`:"";
+const exportBtn=k=>S.dbReady?`<button data-export="${k}">Export CSV</button>`:"";
+
+V.today=()=>{
+  const d=S.day,list=S.sessions.filter(s=>s.date===d).sort((a,b)=>(a.start||"").localeCompare(b.start||""));
+  const {list:conf,flagged}=conflictsFor(list);
+  const facAvail=S.facilities.filter(f=>f.status==="Available"||f.status==="Partly available").length;
+  const staffAct=S.staff.filter(s=>s.status==="Active").length,staffLeave=S.staff.filter(s=>s.status==="On leave").length;
+  const done=list.filter(s=>s.status==="Delivered").length,planned=list.filter(active).length;
+  const late=lateTasks();
+  const alerts=[...conf.map(c=>({sev:c.sev,txt:c.txt})),
+    ...late.map(t=>({sev:"warn",txt:`Overdue action: ${t.title} (due ${fmtDay(t.due)}${t.ownerId?", "+staffName(t.ownerId):""})`})),
+    ...S.groups.filter(g=>g.status!=="Suspended"&&!g.coachId).map(g=>({sev:"warn",txt:`Group ${g.sport} · ${g.level}${g.name?" · "+g.name:""} has no assigned coach`}))];
+  const H0=6*60,H1=23*60,span=H1-H0;
+  const pos=t=>Math.max(0,Math.min(100,(mins(t)-H0)/span*100));
+  const ticks=[6,9,12,15,18,21].map(h=>`<span style="left:${(h*60-H0)/span*100}%">${pad(h)}h</span>`).join("");
+  return `${roNote()}
+  <div class="bar"><div><div class="eyebrow">Daily tracking</div><h2>${esc(fmtLong(d))}</h2></div>
+    <div class="grp"><button data-day="-1" aria-label="Previous day">‹</button><input type="date" id="dayPick" value="${d}" aria-label="Pick a date"><button data-day="1" aria-label="Next day">›</button>${d!==today()?`<button data-day="0">Today</button>`:""}${addBtn("sessions","Add a session",{date:d})}</div></div>
+  <div class="kpis">
+    <div class="kpi"><span class="eyebrow">Sessions</span><b>${planned}</b><small>${done} delivered, ${list.length-planned} cancelled or postponed</small></div>
+    <div class="kpi"><span class="eyebrow">Facilities</span><b>${facAvail}<span class="muted" style="font-size:16px"> / ${S.facilities.length}</span></b><small>available</small></div>
+    <div class="kpi"><span class="eyebrow">Active staff</span><b>${staffAct}</b><small>${staffLeave} on leave, ${S.staff.filter(s=>s.status==="Recruiting"||s.status==="Recruitment on hold").length} position(s) being recruited</small></div>
+    <div class="kpi"><span class="eyebrow">Overall progress</span><b>${avgProg(S.tasks)} %</b><small>${S.tasks.filter(t=>t.status==="Completed").length} completed out of ${S.tasks.length} action(s)</small></div>
+    <div class="kpi${late.length?" alert":""}"><span class="eyebrow">Overdue actions</span><b>${late.length}</b><small>${S.tasks.filter(t=>t.status==="In progress").length} in progress, ${S.tasks.filter(t=>t.status==="Blocked").length} blocked</small></div>
+    <div class="kpi${conf.some(c=>c.sev==="bad")?" alert":""}"><span class="eyebrow">Points of attention</span><b>${alerts.length}</b><small>conflicts, gaps, delays</small></div>
+  </div>
+  <div class="cols">
+    <section class="panel"><div class="bar"><h3>Today's sessions</h3><span class="tot">${list.reduce((n,s)=>n+(Number(s.present)||0),0)} attendance(s) recorded</span></div>
+      ${list.length?`<div class="agenda">${list.map(s=>`<div class="row">
+        <div class="time">${esc(s.start||"")}<br><span class="muted">${esc(s.end||"")}</span></div>
+        <div class="what"><button class="ghost" style="text-align:left;padding:0;font-weight:600;font-size:14px" data-edit="sessions" data-id="${s.id}"><span class="sport-dot" style="background:${sportColor(s.sport)}"></span>${esc(s.type||"Session")}: ${esc(sessLabel(s))}</button>
+          <span class="muted" style="font-size:13px">${esc(facName(s.facilityId)||"No facility assigned")} · ${esc(staffName(s.staffId)||"No lead assigned")}${s.present!=null&&s.present!==""?` · ${s.present} attended`:""}</span>
+          ${flagged.has(s.id)?`<span class="flag">Point of attention, see right</span>`:""}</div>
+        <div class="acts">${pill(s.status)}${writable()&&s.status==="Scheduled"?`<button class="mini" data-quick="Delivered" data-id="${s.id}">Delivered</button><button class="mini" data-quick="Cancelled" data-id="${s.id}">Cancelled</button>`:""}</div></div>`).join("")}</div>`
+      :`<div class="empty">No sessions scheduled for this day.${writable()?`<span>Add the first session or plan the week from the Schedule tab.</span>`:""}</div>`}
+    </section>
+    <section class="panel"><h3>Points of attention</h3>
+      ${alerts.length?`<ul class="alerts">${alerts.slice(0,14).map(a=>`<li style="--sev:var(--${a.sev})">${esc(a.txt)}</li>`).join("")}</ul>${alerts.length>14?`<p class="tot">and ${alerts.length-14} more</p>`:""}`:`<div class="empty">Nothing to report for this day.</div>`}
+    </section>
+  </div>
+  <section class="panel"><div class="bar"><h3>Facility occupancy</h3><span class="tot">06:00 to 23:00 · tap a slot to open it</span></div>
+    ${S.facilities.length?`<div class="occ">
+      <div class="axis"><span></span><div class="ticks">${ticks}</div></div>
+      ${S.facilities.slice().sort((a,b)=>(a.name||"").localeCompare(b.name||"")).map(f=>{
+        const ss=list.filter(s=>s.facilityId===f.id&&s.start&&s.end);
+        const off=f.status==="Under maintenance"||f.status==="Unavailable";
+        const used=ss.filter(active).reduce((n,s)=>n+mins(s.end)-mins(s.start),0);
+        return `<div class="f"><div class="nm"><span>${esc(f.name)}</span><span style="display:flex;gap:6px;flex-wrap:wrap">${pill(f.status)}<span class="tag num">${Math.round(used/6)/10} h</span></span></div>
+        <div class="track${off?" off":""}">${ss.map(s=>`<button class="blk${active(s)?"":" cancel"}" style="left:${pos(s.start)}%;width:${Math.max(.8,pos(s.end)-pos(s.start))}%;--sc:${sportColor(s.sport)}" title="${esc(s.start+"-"+s.end+" "+sessLabel(s))}" aria-label="${esc(s.start+"-"+s.end+" "+sessLabel(s))}" data-edit="sessions" data-id="${s.id}"></button>`).join("")}</div></div>`}).join("")}
+    </div>`:`<div class="empty">No facilities recorded.${writable()?`<span>Add the hall and fields in the Facilities tab.</span>`:""}</div>`}
+  </section>`;
+};
+
+V.pathway=()=>{
+  const {sports,levels}=cfg();
+  const cellG=(sp,lv)=>S.groups.filter(g=>g.sport===sp&&g.level===lv);
+  const sum=a=>a.reduce((n,g)=>n+(Number(g.athletes)||0),0);
+  const coaches=a=>new Set(a.flatMap(g=>[g.coachId,g.assistantId]).filter(Boolean)).size;
+  const all=S.groups.filter(g=>sports.includes(g.sport)&&levels.includes(g.level));
+  const orphan=S.groups.filter(g=>!(sports.includes(g.sport)&&levels.includes(g.level)));
+  const card=g=>{const fill=g.target?Math.round((Number(g.athletes)||0)/g.target*100):null;
+    return `<button class="grp-card" style="--sc:${sportColor(g.sport)}" data-edit="groups" data-id="${g.id}">
+    <span class="t">${esc(g.name||"Group")} <span class="num muted" style="font-weight:500">${Number(g.athletes)||0}${g.target?"/"+g.target:""}</span></span>
+    <span class="m${g.coachId?"":" miss"}">${esc(staffName(g.coachId)||"Coach to assign")}</span>
+    <span class="m">${g.perWeek?g.perWeek+" session(s)/wk":""}${g.ages?" · "+esc(g.ages):""}${g.status&&g.status!=="Active"?" · "+esc(g.status):""}${fill!=null&&fill<80?" · "+fill+" % of target":""}</span></button>`};
+  return `${roNote()}
+  <div class="bar"><div><div class="eyebrow">PATHWAY programme · ${levels.length} levels × ${sports.length} sports</div><h2>Groups, athletes and coaching matrix</h2></div>
+    <div class="grp">${exportBtn("groups")}${addBtn("groups","Add a group")}</div></div>
+  <div class="kpis">
+    <div class="kpi"><span class="eyebrow">Enrolled athletes</span><b>${sum(all)}</b><small>in ${all.length} group(s)</small></div>
+    <div class="kpi"><span class="eyebrow">Coaches assigned</span><b>${coaches(all)}</b><small>distinct head and assistant coaches</small></div>
+    <div class="kpi${all.filter(g=>!g.coachId).length?" alert":""}"><span class="eyebrow">Groups without a coach</span><b>${all.filter(g=>!g.coachId).length}</b><small>to assign</small></div>
+    <div class="kpi"><span class="eyebrow">Empty cells</span><b>${sports.length*levels.length-new Set(all.map(g=>g.sport+"|"+g.level)).size}</b><small>sport × level with no group</small></div>
+  </div>
+  <div class="scroll"><table class="matrix">
+    <thead><tr><th>Sport</th>${levels.map((l,i)=>`<th><span class="eyebrow">Level ${i+1}</span><span class="lvl">${esc(l)}</span></th>`).join("")}<th class="r">Total</th></tr></thead>
+    <tbody>${sports.map(sp=>{const row=S.groups.filter(g=>g.sport===sp&&levels.includes(g.level));
+      return `<tr><th class="sport" scope="row"><span class="sport-dot" style="background:${sportColor(sp)}"></span>${esc(sp)}</th>
+      ${levels.map(lv=>{const gs=cellG(sp,lv);return `<td><div class="cell">${gs.map(card).join("")}${writable()?`<button class="add" data-add="groups" data-preset='${esc(JSON.stringify({sport:sp,level:lv}))}'>+ group</button>`:(gs.length?"":`<span class="tot">No group</span>`)}</div></td>`}).join("")}
+      <td class="r tot"><b>${sum(row)}</b><br>athletes<br><span class="num">${row.length}</span> gr. · <span class="num">${coaches(row)}</span> coach.</td></tr>`}).join("")}
+    <tr><th class="sport">Total</th>${levels.map(lv=>{const c=S.groups.filter(g=>g.level===lv&&sports.includes(g.sport));return `<td class="tot"><b>${sum(c)}</b> athletes · <span class="num">${c.length}</span> gr.</td>`}).join("")}<td class="r tot"><b>${sum(all)}</b></td></tr>
+    </tbody></table></div>
+  ${orphan.length?`<section class="panel"><h3>Groups outside the matrix</h3><p class="tot">These groups use a sport or level that is no longer listed in Settings.</p><div class="cell">${orphan.map(card).join("")}</div></section>`:""}`;
+};
+
+V.schedule=()=>{
+  const ws=S.week,days=[...Array(7)].map((_,i)=>addDays(ws,i));
+  let list=S.sessions.filter(s=>s.date>=ws&&s.date<=days[6]);
+  const f=S.f;
+  if(f.psport)list=list.filter(s=>s.sport===f.psport);
+  if(f.pfac)list=list.filter(s=>s.facilityId===f.pfac);
+  if(f.pstaff)list=list.filter(s=>s.staffId===f.pstaff);
+  const {flagged,list:conf}=conflictsFor(S.sessions.filter(s=>s.date>=ws&&s.date<=days[6]));
+  const hours=list.filter(active).reduce((n,s)=>n+(mins(s.end)-mins(s.start)||0),0);
+  return `${roNote()}
+  <div class="bar"><div><div class="eyebrow">Week of ${esc(fmtDay(ws))} to ${esc(fmtDay(days[6]))}</div><h2>Session schedule</h2></div>
+    <div class="grp"><button data-week="-7" aria-label="Previous week">‹</button><button data-week="0">This week</button><button data-week="7" aria-label="Next week">›</button>${exportBtn("sessions")}${addBtn("sessions","Add a session",{date:S.day>=ws&&S.day<=days[6]?S.day:ws})}</div></div>
+  <div class="bar"><div class="grp">
+    <select id="fpsport" aria-label="Filter by sport">${opts([...cfg().sports,"All sports"],f.psport,"Every sport")}</select>
+    <select id="fpfac" aria-label="Filter by facility">${opts(facOpts(),f.pfac,"All facilities")}</select>
+    <select id="fpstaff" aria-label="Filter by lead">${opts(staffOpts(),f.pstaff,"All staff")}</select></div>
+    <span class="tot"><b class="num">${list.filter(active).length}</b> session(s) · <b class="num">${Math.round(hours/6)/10}</b> h · <span style="color:${conf.length?"var(--bad)":"inherit"}">${conf.length} point(s) of attention</span></span></div>
+  <div class="scroll"><div class="week">${days.map(d=>{const ds=list.filter(s=>s.date===d).sort((a,b)=>(a.start||"").localeCompare(b.start||""));
+    return `<div class="day${d===today()?" today":""}"><h4><span>${esc(fmtDay(d))}</span><span class="num muted">${ds.filter(active).length}</span></h4>
+    ${ds.map(s=>`<button class="sess${active(s)?"":" cancel"}${flagged.has(s.id)?" conf":""}" style="--sc:${sportColor(s.sport)}" data-edit="sessions" data-id="${s.id}">
+      <span class="h"><span>${esc(s.start)}-${esc(s.end)}</span>${s.status!=="Scheduled"?`<span>${esc(s.status)}</span>`:""}</span>
+      <span class="t">${esc(sessLabel(s))}</span>
+      <span class="muted">${esc(s.type||"")}${s.facilityId?" · "+esc(facName(s.facilityId)):""}</span>
+      <span class="muted">${esc(staffName(s.staffId)||"No lead")}</span>
+      ${flagged.has(s.id)?`<span class="flag">To check</span>`:""}</button>`).join("")}
+    ${writable()?`<button class="add" data-add="sessions" data-preset='${esc(JSON.stringify({date:d}))}'>+ session</button>`:""}</div>`}).join("")}</div></div>
+  ${conf.length?`<section class="panel"><h3>Points of attention this week</h3><ul class="alerts">${conf.map(c=>`<li style="--sev:var(--${c.sev})">${esc(fmtDay(c.d))} : ${esc(c.txt)}</li>`).join("")}</ul></section>`:""}
+  ${writable()?`<section class="panel"><div class="bar"><div><h3>Roll the week forward</h3><p class="tot" style="margin:0">Copies this week's non-cancelled sessions to the following week, with status "Scheduled".</p></div><button id="copyWeek">Copy to next week</button></div></section>`:""}`;
+};
+
+V.facilities=()=>{
+  const t=today(),ws=weekStart(t),we=addDays(ws,6);
+  const rows=S.facilities.slice().sort((a,b)=>(a.name||"").localeCompare(b.name||""));
+  const cnt={};for(const s of FAC_STATUS)cnt[s]=S.facilities.filter(f=>f.status===s).length;
+  return `${roNote()}
+  <div class="bar"><div><div class="eyebrow">Hall, fields and spaces</div><h2>Facility availability</h2></div><div class="grp">${exportBtn("facilities")}${addBtn("facilities","Add a facility")}</div></div>
+  <div class="grp" style="display:flex;gap:8px;flex-wrap:wrap">${FAC_STATUS.map(s=>`<span class="pill ${statusClass(s)}">${esc(s)} <span class="num">${cnt[s]}</span></span>`).join("")}</div>
+  ${rows.length?`<div class="scroll"><table><thead><tr><th>Facility</th><th>Type</th><th>Sports</th><th class="r">Capacity</th><th>Hours</th><th>Availability</th><th class="r">Sessions today</th><th class="r">Hours this week</th></tr></thead><tbody>
+  ${rows.map(f=>{const wk=S.sessions.filter(s=>s.facilityId===f.id&&s.date>=ws&&s.date<=we&&active(s));
+    const h=wk.reduce((n,s)=>n+(mins(s.end)-mins(s.start)||0),0);
+    const open=f.open&&f.close?mins(f.close)-mins(f.open):null;
+    return `<tr class="click" data-edit="facilities" data-id="${f.id}"><td><b>${esc(f.name)}</b>${f.notes?`<br><span class="tot">${esc(f.notes)}</span>`:""}</td><td>${esc(f.type||"")}</td><td>${esc(f.sports||"")}</td><td class="r num">${f.capacity??""}</td>
+    <td class="num">${f.open&&f.close?esc(f.open+"-"+f.close):""}</td>
+    <td data-stop>${writable()?`<select class="mini" data-status="facilities" data-id="${f.id}" aria-label="Availability of ${esc(f.name)}">${opts(FAC_STATUS,f.status)}</select>`:pill(f.status)}${f.until&&f.status!=="Available"?`<br><span class="tot">until ${esc(fmtDay(f.until))}</span>`:""}</td>
+    <td class="r num">${S.sessions.filter(s=>s.facilityId===f.id&&s.date===t&&active(s)).length}</td>
+    <td class="r num">${Math.round(h/6)/10}${open?`<br><span class="tot">${Math.round(h/(open*7)*100)} % of opening time</span>`:""}</td></tr>`}).join("")}</tbody></table></div>`
+  :`<div class="panel"><div class="empty">No facilities recorded.${writable()?"<span>Add the hall, fields, track and annex spaces to track their availability and occupancy.</span>":""}</div></div>`}`;
+};
+
+V.staffs=()=>{
+  const f=S.f,ws=weekStart(today()),we=addDays(ws,6);
+  let rows=S.staff.slice().sort((a,b)=>(a.team||"").localeCompare(b.team||"")||(a.name||"").localeCompare(b.name||""));
+  if(f.steam)rows=rows.filter(s=>s.team===f.steam);
+  if(f.sstat)rows=rows.filter(s=>s.status===f.sstat);
+  return `${roNote()}
+  <div class="bar"><div><div class="eyebrow">Technical and administrative team</div><h2>Academy staff</h2></div><div class="grp">${exportBtn("staff")}${addBtn("staff","Add a member")}</div></div>
+  <div class="kpis">${cfg().teams.map(t=>{const m=S.staff.filter(s=>s.team===t);return `<div class="kpi"><span class="eyebrow">${esc(t)}</span><b>${m.filter(s=>s.status==="Active").length}</b><small>active out of ${m.length}${m.filter(s=>s.status==="Recruiting"||s.status==="Recruitment on hold").length?", "+m.filter(s=>s.status==="Recruiting"||s.status==="Recruitment on hold").length+" being recruited":""}</small></div>`}).join("")}</div>
+  <div class="grp" style="display:flex;gap:8px;flex-wrap:wrap"><select id="fsteam" aria-label="Filter by department">${opts(cfg().teams,f.steam,"All departments")}</select><select id="fsstat" aria-label="Filter by status">${opts(STAFF_STATUS,f.sstat,"All statuses")}</select></div>
+  ${rows.length?`<div class="scroll"><table><thead><tr><th>Name</th><th>Position</th><th>Department</th><th>Sport</th><th>Status</th><th class="r">Groups</th><th class="r">Sessions this week</th><th class="r">Open actions</th><th>Contact</th></tr></thead><tbody>
+  ${rows.map(s=>{const g=S.groups.filter(x=>x.coachId===s.id||x.assistantId===s.id).length;
+    const se=S.sessions.filter(x=>x.staffId===s.id&&x.date>=ws&&x.date<=we&&active(x)).length;
+    const ta=S.tasks.filter(x=>x.ownerId===s.id&&x.status!=="Completed");const late=ta.filter(x=>x.due&&x.due<today()).length;
+    return `<tr class="click" data-edit="staff" data-id="${s.id}"><td><b>${esc(s.name)}</b></td><td>${esc(s.role||"")}</td><td>${esc(s.team||"")}</td><td>${s.sport?`<span class="sport-dot" style="background:${sportColor(s.sport)}"></span>${esc(s.sport)}`:""}</td>
+    <td data-stop>${writable()?`<select class="mini" data-status="staff" data-id="${s.id}" aria-label="Status of ${esc(s.name)}">${opts(STAFF_STATUS,s.status)}</select>`:pill(s.status)}</td>
+    <td class="r num">${g}</td><td class="r num">${se}</td><td class="r num">${ta.length}${late?` <span class="flag">(${late} overdue)</span>`:""}</td><td>${esc(s.contact||"")}</td></tr>`}).join("")}</tbody></table></div>`
+  :`<div class="panel"><div class="empty">${S.staff.length?"No member matches the filters.":"No members recorded."}${writable()&&!S.staff.length?"<span>Add coaches, conditioning staff, medical staff and the administrative team.</span>":""}</div></div>`}`;
+};
+
+V.actions=()=>{
+  const f=S.f,all=S.tasks;
+  const list=all.filter(t=>(!f.tarea||t.area===f.tarea)&&(!f.towner||t.ownerId===f.towner));
+  const mode=S.av;
+  const head=`${roNote()}
+  <div class="bar"><div><div class="eyebrow">Academy action plan</div><h2>Action progress and follow-up</h2></div><div class="grp">${exportBtn("tasks")}${addBtn("tasks","Add an action")}</div></div>
+  <div class="bar"><div class="grp"><div class="seg" role="group" aria-label="Display">${[["summary","Summary"],["timeline","Timeline"],["board","Board"]].map(([k,l])=>`<button data-av="${k}" aria-pressed="${mode===k}">${l}</button>`).join("")}</div>
+    <select id="ftarea" aria-label="Filter by workstream">${opts(cfg().areas,f.tarea,"All workstreams")}</select><select id="ftowner" aria-label="Filter by owner">${opts(staffOpts(),f.towner,"All owners")}</select>
+    ${mode==="board"?`<label class="tot" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="ftdone"${f.tdone?" checked":""}> Show completed actions</label>`:""}</div>
+    <span class="tot"><b class="num">${list.filter(isLate).length}</b> overdue · <b class="num">${list.filter(t=>t.status==="Blocked").length}</b> blocked · <b class="num">${list.filter(t=>t.status!=="Completed").length}</b> open</span></div>`;
+  if(!all.length)return head+`<div class="panel"><div class="empty">No actions recorded.${writable()?"<span>Log each academy workstream here with its owner, dates and progress: recruitment, equipment, agreements, PATHWAY level roll-out.</span>":""}</div></div>`;
+  if(!list.length)return head+`<div class="panel"><div class="empty">No action matches the filters.</div></div>`;
+  return head+(mode==="timeline"?avGantt(list):mode==="board"?avBoard(list):avSynth(list));
+};
+
+const progBar=(p,c)=>`<div class="prog-row"><div class="prog" style="flex:1"><i style="width:${p}%;--pc:${c||"var(--accent)"}"></i></div><span class="num">${p} %</span></div>`;
+const stackBar=arr=>{const n=arr.length||1;return `<div class="stack">${EFF.map(([k,c])=>{const v=arr.filter(t=>eff(t)===k).length;return v?`<span style="width:${v/n*100}%;background:${c}" title="${esc(k)}: ${v}"></span>`:""}).join("")}</div>`};
+const effColor=k=>(EFF.find(e=>e[0]===k)||[,"var(--idle)"])[1];
+
+function avSynth(list){
+  const g=avgProg(list);
+  const cnt=k=>list.filter(t=>eff(t)===k).length;
+  const areas=[...new Set([...cfg().areas,...list.map(t=>t.area||"No workstream")])].filter(a=>list.some(t=>(t.area||"No workstream")===a));
+  const owners=[...new Set(list.map(t=>t.ownerId||""))];
+  const row=(label,l)=>`<tr><td><b>${esc(label)}</b></td><td class="r num">${l.length}</td><td style="min-width:140px">${stackBar(l)}</td><td style="min-width:160px">${progBar(avgProg(l))}</td>
+    <td class="r num">${l.filter(t=>t.status==="Completed").length}</td><td class="r num" style="${l.filter(isLate).length?"color:var(--bad);font-weight:600":""}">${l.filter(isLate).length}</td><td class="r num">${l.filter(t=>t.status==="Blocked").length}</td></tr>`;
+  const thead=first=>`<thead><tr><th>${first}</th><th class="r">Actions</th><th>Breakdown</th><th>Average progress</th><th class="r">Completed</th><th class="r">Overdue</th><th class="r">Blocked</th></tr></thead>`;
+  return `<section class="panel"><div class="gauge-wrap"><div><div class="eyebrow">Overall progress</div><div class="big">${g}<span style="font-size:22px"> %</span></div><div class="tot">${list.length} action(s) tracked</div></div>
+    <div style="display:flex;flex-direction:column;gap:10px;min-width:0">${progBar(g)}${stackBar(list)}<div class="legend">${EFF.map(([k,c])=>`<span><i style="background:${c}"></i>${esc(k)} <b class="num">${cnt(k)}</b></span>`).join("")}</div></div></div></section>
+  <section class="panel chart"><div class="bar"><h3>Progress over time</h3><span class="tot">Last 12 weeks · average of existing actions at each date</span></div>${evoChart(evolution(list))}</section>
+  <section style="display:flex;flex-direction:column;gap:8px"><h3>By workstream</h3><div class="scroll"><table>${thead("Workstream")}<tbody>${areas.map(a=>row(a,list.filter(t=>(t.area||"No workstream")===a))).join("")}</tbody></table></div></section>
+  <section style="display:flex;flex-direction:column;gap:8px"><h3>By owner</h3><div class="scroll"><table>${thead("Owner")}<tbody>${owners.map(o=>row(staffName(o)||"No owner",list.filter(t=>(t.ownerId||"")===o))).join("")}</tbody></table></div></section>`;
+}
+
+function evolution(tasks,weeks=12){
+  const pts=[];
+  for(let i=weeks;i>=0;i--){
+    const d=addDays(today(),-7*i);
+    const live=tasks.filter(t=>(t.created||(t._at||"").slice(0,10)||today())<=d);
+    if(!live.length){pts.push({d,v:null,done:0});continue}
+    let sum=0,done=0;
+    for(const t of live){const h=(t.history||[]).filter(x=>x.d<=d);const last=h[h.length-1];
+      const hasH=(t.history||[]).length>0;const p=last?last.p:(hasH?0:t.progress);const s=last?last.s:(hasH?"Not started":t.status);
+      sum+=Number(p)||0;if(s==="Completed")done++}
+    pts.push({d,v:Math.round(sum/live.length),done,n:live.length});
+  }
+  return pts;
+}
+function evoChart(pts){
+  if(!pts.some(p=>p.v!=null))return `<div class="empty">The history will build up as actions are updated.</div>`;
+  const W=680,H=210,L=40,R=40,T=14,B=26,n=pts.length;
+  const x=i=>L+i*(W-L-R)/(n-1),y=v=>T+(100-v)/100*(H-T-B);
+  const grid=[0,25,50,75,100].map(v=>`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" style="stroke:var(--line)" stroke-width="1"/><text x="${L-6}" y="${y(v)+3}" text-anchor="end">${v} %</text>`).join("");
+  const xl=pts.map((p,i)=>i%2===0||i===n-1?`<text x="${x(i)}" y="${H-8}" text-anchor="middle">${p.d.slice(8,10)}/${p.d.slice(5,7)}</text>`:"").join("");
+  const seg=pts.map((p,i)=>p.v==null?null:[x(i),y(p.v)]).filter(Boolean);
+  const line=seg.map((q,i)=>(i?"L":"M")+q[0].toFixed(1)+" "+q[1].toFixed(1)).join(" ");
+  const area=seg.length>1?line+` L${seg[seg.length-1][0].toFixed(1)} ${y(0)} L${seg[0][0].toFixed(1)} ${y(0)} Z`:"";
+  const last=pts[n-1],lx=x(n-1),ly=y(last.v??0);
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Overall progress over 12 weeks">${grid}${xl}
+    ${area?`<path d="${area}" style="fill:var(--accent);fill-opacity:.12;stroke:none"/>`:""}
+    <path d="${line}" style="fill:none;stroke:var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>
+    ${seg.map(q=>`<circle cx="${q[0]}" cy="${q[1]}" r="2.5" style="fill:var(--accent)"/>`).join("")}
+    <circle cx="${lx}" cy="${ly}" r="5" style="fill:var(--coral);stroke:var(--surface)" stroke-width="2"/>
+    <text x="${lx}" y="${ly-10}" text-anchor="middle" style="fill:var(--fg);font-weight:600;font-size:12px">${last.v??0} %</text></svg>
+    <p class="tot" style="margin:0">Actions completed to date: <b class="num">${last.done||0}</b> out of <b class="num">${last.n||0}</b></p>`;
+}
+
+function avGantt(list){
+  const weeks=16,ws0=S.gs,end=addDays(ws0,weeks*7-1),total=weeks*7;
+  const dd=(a,b)=>Math.round((parse(b)-parse(a))/864e5);
+  const px=d=>Math.max(0,Math.min(100,dd(ws0,d)/total*100));
+  const areas=[...new Set([...cfg().areas,...list.map(t=>t.area||"No workstream")])].filter(a=>list.some(t=>(t.area||"No workstream")===a));
+  const nodate=list.filter(t=>!t.start&&!t.due).length;
+  const marks=[...Array(weeks)].map((_,i)=>{const d=addDays(ws0,i*7);return `<span class="wk" style="left:${i/weeks*100}%"></span>`}).join("");
+  const nowL=today()>=ws0&&today()<=end?`<span class="now" style="left:${px(today())}%"></span>`:"";
+  const rowsFor=a=>list.filter(t=>(t.area||"No workstream")===a).sort((p,q)=>(p.start||p.due||"").localeCompare(q.start||q.due||"")).map(t=>{
+    let s=t.start||t.due,e=t.due||t.start;if(s&&e&&e<s)[s,e]=[e,s];
+    const k=eff(t),c=effColor(k);
+    let bar="";
+    if(s&&e&&e>=ws0&&s<=end){const l=px(s),r=Math.max(px(addDays(e,1)),l+.8);
+      bar=t.start&&t.due?`<button class="gbar" style="left:${l}%;width:${r-l}%;--gc:${c}" data-edit="tasks" data-id="${t.id}" aria-label="${esc(t.title)}: ${t.progress} %"><i style="width:${t.progress}%"></i></button>`
+        :`<button class="gbar pt" style="left:calc(${l}% - 5px);--gc:${c}" data-edit="tasks" data-id="${t.id}" aria-label="${esc(t.title)}"><i style="width:100%"></i></button>`}
+    return `<div class="gr"><div class="lab" data-edit="tasks" data-id="${t.id}" role="button" tabindex="0"><span><b>${esc(t.title)}</b></span><span class="tot">${pill(k)} ${t.progress} % · ${esc(staffName(t.ownerId)||"No owner")}${t.due?" · "+esc(fmtDay(t.due)):""}</span></div><div class="lane2">${marks}${nowL}${bar}</div></div>`}).join("");
+  return `<div class="bar"><div class="grp"><button data-gs="-28" aria-label="4 weeks earlier">‹ 4 wks</button><button data-gs="0">Today</button><button data-gs="28" aria-label="4 weeks later">4 wks ›</button></div>
+    <div class="legend">${EFF.map(([k,c])=>`<span><i style="background:${c}"></i>${esc(k)}</span>`).join("")}<span><i style="background:var(--coral);width:3px"></i>Today</span></div></div>
+  <div class="scroll"><div class="gantt">
+    <div class="gr h"><div class="lab static">Action · progress</div><div class="lane2">${[...Array(weeks)].map((_,i)=>{const d=addDays(ws0,i*7);return `<span class="wk" style="left:${i/weeks*100}%"></span>${i%2===0?`<span class="wkl" style="left:${i/weeks*100}%">${esc(fmtDay(d))}</span>`:""}`}).join("")}</div></div>
+    ${areas.map(a=>`<div class="gr dom"><div class="lab static">${esc(a)}</div><div class="lane2" style="height:26px"></div></div>${rowsFor(a)}`).join("")}
+  </div></div>
+  <p class="tot" style="margin:0">The bar shows the planned period (start to due date); the filled part is the progress percentage. An action without a start date appears as a dot on its due date.${nodate?` ${nodate} action(s) without any date are not shown on the timeline.`:""}</p>`;
+}
+
+function avBoard(list){
+  const f=S.f;const pr={"High":0,"Medium":1,"Low":2};
+  list=list.slice().sort((a,b)=>(a.due||"9999").localeCompare(b.due||"9999")||(pr[a.priority]??1)-(pr[b.priority]??1));
+  const lanes=TASK_STATUS.filter(s=>s!=="Completed"||f.tdone);
+  return `<div class="scroll"><div class="board" style="grid-template-columns:repeat(${lanes.length},minmax(220px,1fr));min-width:${lanes.length*235}px">${lanes.map(st=>{const Lt=list.filter(t=>t.status===st);
+    return `<div class="lane"><h4><span>${pill(st)}</span><span class="num muted">${Lt.length}</span></h4>${Lt.map(t=>{const late=isLate(t);
+      return `<div class="card${late?" late":""}"><span class="t" role="button" tabindex="0" data-edit="tasks" data-id="${t.id}">${esc(t.title)}</span>
+      <div class="meta">${late?`<span class="pill bad">Overdue</span>`:""}${t.area?`<span class="tag">${esc(t.area)}</span>`:""}${t.sport?`<span class="tag"><span class="sport-dot" style="background:${sportColor(t.sport)}"></span>${esc(t.sport)}</span>`:""}<span class="tag" style="${t.priority==="High"?"color:var(--bad)":""}">${esc(t.priority||"")}</span></div>
+      ${progBar(t.progress,effColor(eff(t)))}
+      <div class="meta tot"><span>${esc(staffName(t.ownerId)||"No owner")}</span>${t.due?`<span style="${late?"color:var(--bad);font-weight:600":""}">· ${esc(fmtDay(t.due))}</span>`:""}</div>
+      ${writable()?`<div class="meta"><select class="mini" data-status="tasks" data-id="${t.id}" aria-label="Status">${opts(TASK_STATUS,t.status)}</select><input type="range" min="0" max="100" step="5" value="${t.progress}" data-prog="${t.id}" aria-label="Progress percentage" style="flex:1;min-width:80px;padding:0"></div>`:""}</div>`}).join("")||`<span class="tot">None</span>`}</div>`}).join("")}</div></div>
+  <p class="tot" style="margin:0">The slider sets progress: above 0 %, a "Not started" action moves to "In progress"; at 100 %, it moves to "Completed".</p>`;
+}
+
+/* ---------- MIDAN season data (imported from the MIDAN Director Dashboard export) ---------- */
+const MIDAN_W1="2026-08-30";
+const MIDAN_MONTHS=["2026-09","2026-10","2026-11","2026-12","2027-01","2027-02","2027-03","2027-04","2027-05","2027-06","2027-07","2027-08"];
+const MN_EN=["January","February","March","April","May","June","July","August","September","October","November","December"];
+const monthLabel=ym=>{const [y,m]=ym.split("-").map(Number);return MN_EN[m-1]+" "+y};
+const midanWeekDate=w=>addDays(MIDAN_W1,(Number(w)-1)*7);
+const mnum=v=>{const n=parseFloat(v);return isFinite(n)?n:0};
+const mhash=s=>{let h=5381;for(const c of String(s))h=((h<<5)+h+c.charCodeAt(0))|0;return (h>>>0).toString(36)};
+const msafe=s=>String(s).replace(/[^A-Za-z0-9_\-.]/g,"_");
+const EV_LABEL={comp:"Competition",camp:"Training camp",test:"Test",rest:"Rest"};
+const EV_CLASS={comp:"bad",camp:"run",test:"warn",rest:"idle"};
+function midanGroup(ctx){const p=String(ctx||"").split("|");return p[2]||p[1]||""}
+function midanTransform(d){
+  const weeks={},events={},monthly=[];
+  const wk=(sport,w)=>{const k=sport+"|"+w;if(!weeks[k]){const date=midanWeekDate(w);weeks[k]={id:msafe(sport)+"-w"+String(w).padStart(2,"0"),sport,week:Number(w),date,month:date.slice(0,7),periods:[],groups:0,sessions_pl:0,hours_pl:0,wk_sessions_pl:0,wk_hours_pl:0,sessions_ac:0,hours_ac:0,status:"",reported:false}}return weeks[k]};
+  const addEv=(r,type,level,name,objective)=>{
+    name=String(name||"").trim().replace(/\s+/g," ");if(!name)return;
+    const key=r.coach_id+"|"+r.week_num+"|"+type+"|"+name.toLowerCase();
+    if(!events[key]){const date=midanWeekDate(r.week_num);events[key]={id:msafe(r.coach_id)+"-w"+String(r.week_num).padStart(2,"0")+"-"+type+"-"+mhash(key),sport:r.coach_id,week:Number(r.week_num),date,month:date.slice(0,7),type,level:level||"",name,objective:objective||"",groups:[]}}
+    const g=midanGroup(r.plan_context);if(g&&!events[key].groups.includes(g))events[key].groups.push(g);
+  };
+  for(const r of d.annual_weeks||[]){
+    if(!r.coach_id||!r.week_num)continue;
+    const w=wk(r.coach_id,r.week_num);w.groups++;
+    w.sessions_pl+=mnum(r.sessions_pl);w.hours_pl+=mnum(r.hours_pl);
+    if(r.period&&!w.periods.includes(r.period))w.periods.push(r.period);
+    const obj=String(r.comp_obj||"").trim();
+    for(const [f,lv] of [["comp_a","A"],["comp_b","B"],["comp_c","C"]]){
+      const v=String(r[f]||"").trim();if(!v)continue;
+      if(/^camp$/i.test(v))addEv(r,"camp","","Training camp");else addEv(r,"comp",lv,v,lv==="A"?obj:"");
+    }
+    if(r.training_camp)addEv(r,"camp","","Training camp");
+    if(r.medical_test)addEv(r,"test","",/test/i.test(obj)?obj:"Medical / physical test");
+    if(r.rest_period)addEv(r,"rest","","Rest period");
+  }
+  for(const r of d.weekly_entries||[]){
+    if(!r.coach_id||!r.week_num)continue;
+    const st=String(r.status||"").trim();if(!st)continue;
+    const w=wk(r.coach_id,r.week_num);w.reported=true;w.status=st;
+    w.wk_sessions_pl+=mnum(r.sessions_pl);w.wk_hours_pl+=mnum(r.hours_pl);
+    w.sessions_ac+=mnum(r.sessions_ac);w.hours_ac+=mnum(r.hours_ac);
+  }
+  for(const r of d.monthly_reports||[]){
+    const m=String(r.month_name||"").match(/([A-Za-z]+)\s+(\d{4})/);if(!r.coach_id||!m)continue;
+    const mi=MN_EN.findIndex(x=>x.toLowerCase()===m[1].toLowerCase());if(mi<0)continue;
+    const ym=m[2]+"-"+String(mi+1).padStart(2,"0");
+    const pick=["age_group","period","sessions_pl","sessions_ac","hours_pl","hours_ac","attendance_pct","athletes_pl","athletes_ac","quality_score","comm_score","planning_score","comp_events","comp_a","comp_b","kpi_result","what_worked","what_adjust","support_needed","athlete_pos","athlete_neg","next_month","venue","submitted_at"];
+    const o={id:msafe(r.coach_id)+"-"+ym,sport:r.coach_id,month:ym,month_name:r.month_name};
+    for(const k of pick)o[k]=r[k]==null?"":r[k];
+    monthly.push(o);
+  }
+  const W=Object.values(weeks),E=Object.values(events);
+  return {midan_weeks:W,midan_events:E,midan_monthly:monthly,
+    meta:{exported_at:d.exported_at||"",imported_at:new Date().toISOString(),coaches:(d.coaches||[]).map(c=>({sport:c.sport,full_name:c.full_name})),
+      counts:{weeks:W.length,events:E.length,competitions:E.filter(e=>e.type==="comp").length,monthly:monthly.length,annual_rows:(d.annual_weeks||[]).length,weekly_rows:(d.weekly_entries||[]).length}}};
+}
+async function importMidan(file){
+  if(!writable())return;
+  let d;try{d=JSON.parse(await file.text())}catch(e){toast("This file is not a valid MIDAN export.");return}
+  if(!d||!Array.isArray(d.annual_weeks)){toast("This file is not a MIDAN export (no season calendar found).");return}
+  const out=midanTransform(d);
+  const stamp={_at:new Date().toISOString(),_by:S.email||S.uid||null};
+  const TBL_MIDAN={midan_weeks:"mas_midan_weeks",midan_events:"mas_midan_events",midan_monthly:"mas_midan_monthly"};
+  try{
+    for(const col of ["midan_weeks","midan_events","midan_monthly"]){
+      const tbl=TBL_MIDAN[col];
+      /* Delete rows not in the new import */
+      const keep=new Set(out[col].map(x=>x.id));
+      const toDelete=S[col].filter(x=>!keep.has(x.id)).map(x=>x.id);
+      if(toDelete.length){const{error}=await sb.from(tbl).delete().in("id",toDelete);if(error)throw error}
+      /* Upsert all new rows in batches of 50 */
+      const rows=out[col].map(x=>({...x,...stamp}));
+      for(let i=0;i<rows.length;i+=50){
+        toast("Importing MIDAN data… "+Math.min(100,Math.round((i+50)/rows.length*100))+" %");
+        const{error}=await sb.from(tbl).upsert(rows.slice(i,i+50),{onConflict:"id"});
+        if(error)throw error;
+      }
+    }
+    /* Store meta in mas_config row id='midan_meta' */
+    const{error:me}=await sb.from("mas_config").upsert({id:"midan_meta",data:out.meta,...stamp},{onConflict:"id"});
+    if(me)throw me;
+    toast(`MIDAN data imported: ${out.meta.counts.competitions} competitions, ${out.meta.counts.monthly} monthly reports`);
+  }catch(e){writeErr(e)}
+}
+function midanOverlap(from,to){return S.midan_weeks.filter(w=>w.date<=to&&addDays(w.date,6)>=from)}
+const fmtWeek=w=>"W"+w.week+" · "+fmtDay(w.date);
+
+V.season=()=>{
+  const m=S.midan_meta,W=S.midan_weeks,E=S.midan_events,M=S.midan_monthly,t=today();
+  const imp=writable()?`<button class="primary" data-midan-import>Import MIDAN export</button><input type="file" id="midanFile" accept=".json,application/json" hidden>`:"";
+  const src=m?`Source: MIDAN export of ${esc(new Date(m.exported_at).toLocaleString("en-GB",{dateStyle:"medium",timeStyle:"short"}))}, imported ${esc(new Date(m.imported_at||m._at).toLocaleDateString("en-GB",{dateStyle:"medium"}))}.`:"No MIDAN data imported yet.";
+  const head=`${roNote()}
+  <div class="bar"><div><div class="eyebrow">From MIDAN · coaches' annual plans, weekly follow-up and monthly reports</div><h2>Season plan and training volume</h2></div><div class="grp">${imp}</div></div>
+  <p class="tot" style="margin:0">${src} To update, export from the MIDAN Director Dashboard (Monthly Reports, Export for Pilotage) and import the file here.</p>`;
+  if(!W.length&&!E.length)return head+`<div class="panel"><div class="empty">No season data yet.${writable()?"<span>Import the file produced by the Export for Pilotage button of the MIDAN Director Dashboard.</span>":""}</div></div>`;
+  const sports=cfg().sports;
+  const sum=(a,k)=>a.reduce((n,x)=>n+(Number(x[k])||0),0);
+  const r1=n=>Math.round(n*10)/10;
+  const toDate=W.filter(w=>w.date<=t),rep=W.filter(w=>w.reported);
+  const comps=E.filter(e=>e.type==="comp"),camps=E.filter(e=>e.type==="camp"),tests=E.filter(e=>e.type==="test");
+  const compl=sum(rep,"wk_sessions_pl")?Math.round(sum(rep,"sessions_ac")/sum(rep,"wk_sessions_pl")*100):null;
+  const months=MIDAN_MONTHS;let sm=S.f.smonth||t.slice(0,7);if(!months.includes(sm))sm=months[0];
+  const evM=E.filter(e=>e.month===sm&&e.type!=="rest").sort((a,b)=>a.date.localeCompare(b.date)||a.sport.localeCompare(b.sport));
+  const moM=sports.map(sp=>({sp,r:M.find(x=>x.sport===sp&&x.month===sm)}));
+  const wM=W.filter(w=>w.month===sm);
+  const v=x=>x===""||x==null?"—":esc(x);
+  return head+`
+  <div class="kpis">
+    <div class="kpi"><span class="eyebrow">Competitions</span><b>${comps.length}</b><small>planned this season (each event counted once, all groups together)</small></div>
+    <div class="kpi"><span class="eyebrow">Training camps</span><b>${camps.length}</b><small>${tests.length} test week(s)</small></div>
+    <div class="kpi"><span class="eyebrow">Annual plan hours</span><b>${Math.round(sum(W,"hours_pl"))}</b><small>season, all groups added · ${Math.round(sum(toDate,"hours_pl"))} h to date</small></div>
+    <div class="kpi"><span class="eyebrow">Delivered hours</span><b>${r1(sum(rep,"hours_ac"))}</b><small>of ${r1(sum(rep,"wk_hours_pl"))} h planned · weekly follow-up, ${rep.length} week(s) reported</small></div>
+    <div class="kpi"><span class="eyebrow">Session completion</span><b>${compl==null?"—":compl+" %"}</b><small>${sum(rep,"sessions_ac")} of ${sum(rep,"wk_sessions_pl")} sessions, reported weeks</small></div>
+  </div>
+  <section style="display:flex;flex-direction:column;gap:8px"><h3>Volume by sport</h3><div class="scroll"><table>
+    <thead><tr><th>Sport</th><th class="r">Groups</th><th class="r">Annual plan, season</th><th class="r">Annual plan, to date</th><th class="r">Weeks reported</th><th class="r">Follow-up planned</th><th class="r">Delivered</th><th class="r">Completion</th><th class="r">Competitions</th><th class="r">Camps</th><th class="r">Tests</th></tr></thead><tbody>
+    ${sports.map(sp=>{const a=W.filter(w=>w.sport===sp),b=a.filter(w=>w.date<=t),c=a.filter(w=>w.reported);const g=Math.max(0,...a.map(w=>w.groups));
+      return `<tr><td><span class="sport-dot" style="background:${sportColor(sp)}"></span><b>${esc(sp)}</b></td><td class="r num">${g||"—"}</td>
+      <td class="r num">${sum(a,"sessions_pl")} s · ${r1(sum(a,"hours_pl"))} h</td><td class="r num">${sum(b,"sessions_pl")} s · ${r1(sum(b,"hours_pl"))} h</td>
+      <td class="r num">${c.length} / ${b.length}</td><td class="r num">${sum(c,"wk_sessions_pl")} s · ${r1(sum(c,"wk_hours_pl"))} h</td><td class="r num">${sum(c,"sessions_ac")} s · ${r1(sum(c,"hours_ac"))} h</td><td class="r num">${sum(c,"wk_sessions_pl")?Math.round(sum(c,"sessions_ac")/sum(c,"wk_sessions_pl")*100)+" %":"—"}</td>
+      <td class="r num">${comps.filter(e=>e.sport===sp).length}</td><td class="r num">${camps.filter(e=>e.sport===sp).length}</td><td class="r num">${tests.filter(e=>e.sport===sp).length}</td></tr>`}).join("")}
+    </tbody></table></div>
+    <p class="tot" style="margin:0">Annual plan figures add up all the groups of a sport, as planned in MIDAN. Follow-up figures come from each coach's weekly follow-up, on the weeks marked done, partial, missed or rest, and are compared with the planned figures of that same follow-up. The two sources are not on the same basis and should not be compared with each other.</p></section>
+  <div class="bar"><div><div class="eyebrow">Month view</div><h3>${esc(monthLabel(sm))}</h3></div>
+    <select id="fsmonth" aria-label="Choose a month">${opts(months.map(x=>({v:x,l:monthLabel(x)})),sm)}</select></div>
+  <div class="cols">
+    <section class="panel"><h3>Monthly reports</h3>
+      ${moM.map(({sp,r})=>r?`<div style="border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:6px">
+        <div class="bar"><b><span class="sport-dot" style="background:${sportColor(sp)}"></span>${esc(sp)}</b><span class="tot">${v(r.age_group)} · ${v(r.period)}</span></div>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:13px"><span>Sessions <b class="num">${v(r.sessions_ac)}/${v(r.sessions_pl)}</b></span><span>Hours <b class="num">${v(r.hours_ac)}/${v(r.hours_pl)}</b></span><span>Attendance <b class="num">${r.attendance_pct===""?"—":esc(r.attendance_pct)+" %"}</b></span><span>Quality <b class="num">${v(r.quality_score)}/5</b></span></div>
+        ${r.what_worked?`<div class="tot"><b style="font-size:12px">What worked:</b> ${esc(r.what_worked)}</div>`:""}
+        ${r.support_needed?`<div class="tot" style="color:var(--warn)"><b style="font-size:12px">Support needed:</b> ${esc(r.support_needed)}</div>`:""}</div>`
+      :`<div style="border-top:1px solid var(--line);padding-top:10px" class="bar"><b><span class="sport-dot" style="background:${sportColor(sp)}"></span>${esc(sp)}</b>${pill("Not submitted")}</div>`).join("")}
+    </section>
+    <section class="panel"><h3>Competitions, camps and tests</h3>
+      ${evM.length?`<div class="scroll" style="border:none"><table><thead><tr><th>Week of</th><th>Sport</th><th>Type</th><th>Event</th><th>Groups</th></tr></thead><tbody>
+      ${evM.map(e=>`<tr><td class="num">${esc(fmtDay(e.date))}</td><td>${esc(e.sport)}</td><td><span class="pill ${EV_CLASS[e.type]}">${esc(EV_LABEL[e.type])}${e.level?" "+esc(e.level):""}</span></td><td>${esc(e.name)}${e.objective?`<br><span class="tot">${esc(e.objective)}</span>`:""}</td><td class="tot">${esc(e.groups.join(", "))}</td></tr>`).join("")}</tbody></table></div>`
+      :`<div class="empty">No competition, camp or test planned this month.</div>`}
+      <p class="tot" style="margin:0">MIDAN plans events by week (W1 starts Sunday 30 August 2026): dates shown are the Sunday of the week.</p>
+      <p class="tot" style="margin:0">Annual plan this month: <b class="num">${sum(wM,"sessions_pl")}</b> sessions, <b class="num">${r1(sum(wM,"hours_pl"))}</b> h (all groups) · weekly follow-up: <b class="num">${sum(wM,"sessions_ac")}</b> of <b class="num">${sum(wM,"wk_sessions_pl")}</b> sessions, <b class="num">${r1(sum(wM,"hours_ac"))}</b> of <b class="num">${r1(sum(wM,"wk_hours_pl"))}</b> h</p>
+    </section>
+  </div>`;
+};
+
+/* ---------- CEO report ---------- */
+const I18N={
+ fr:{title:"Rapport d'avancement",to:"Destinataire : CEO, MAS Foundation",period:"Période",asof:"État au",prep:"Préparé par",
+  s1:"1. Synthèse",k_global:"Avancement global",k_done:"Actions terminées sur la période",k_ip:"Actions en cours",k_late:"Actions en retard",k_sess:"Séances réalisées / programmées",k_rate:"Taux de présence",k_ath:"Athlètes inscrites",k_staff:"Staffs actifs",
+  s2:"2. Avancement par domaine",th_dom:"Domaine",th_n:"Actions",th_prog:"Avancement",th_done:"Terminées",th_ip:"En cours",th_ns:"Non démarrées",th_bl:"Bloquées",th_late:"En retard",
+  s3:"3. Réalisations de la période",s4:"4. Actions en cours",s5:"5. Retards et blocages",s6:"6. Échéances des 30 prochains jours",
+  s7:"7. Programme PATHWAY : athlètes par sport et par niveau",s8:"8. Activité sportive de la période",th_sport:"Sport",th_sched:"Programmées",th_deliv:"Réalisées",th_canc:"Annulées ou reportées",th_hours:"Heures réalisées",th_pres:"Présences",th_rate:"Taux",
+  s9:"9. Ressources et points de vigilance",staffT:"Staffs",facT:"Installations",active:"actifs",leave:"en congé",recruit:"postes en recrutement",avail:"disponibles sur",noCoach:"Groupes sans entraîneur(e) attitré(e)",facOff:"Installations indisponibles",conflicts:"Conflits de planning détectés sur la période",until:"jusqu'au",
+  b_title:"Décisions et jalons",b_dec:"Décisions attendues de la CEO",b_ach:"Réalisé sur la période",b_ms:"Prochains jalons",b_bl:"Points bloqués hors de l'académie",s10:"10. Commentaires et recommandations du consultant MAS WSC",sig_prep:"Préparé par",sig_ceo:"Visa : Mme Alanoud Al-Misnad, CEO MAS WSC",none:"Aucun élément sur la période.",owner:"Responsable",due:"Échéance",doneOn:"Terminée le",total:"Total",groups:"groupes",noRate:"non saisi",unassigned:"Non attribué",noArea:"Sans domaine",mid_src:"Source : MIDAN, suivi hebdomadaire des entraîneurs (semaines renseignées sur la période) et rapports mensuels (présence).",th_plh:"Heures prévues",th_dlh:"Heures réalisées",th_wrep:"Semaines renseignées",th_compl:"Réalisation",th_att:"Présence",ev_title:"Compétitions, stages et tests de la période",th_week:"Semaine du",th_type:"Type",th_event:"Événement",th_groups:"Groupes",support:"Besoins exprimés par les entraîneurs",ev_comp:"Compétition",ev_camp:"Stage",ev_test:"Test"},
+ en:{title:"Progress Report",to:"To: CEO, MAS Foundation",period:"Reporting period",asof:"Status as of",prep:"Prepared by",
+  s1:"1. Executive summary",k_global:"Overall progress",k_done:"Actions completed in period",k_ip:"Actions in progress",k_late:"Overdue actions",k_sess:"Sessions delivered / scheduled",k_rate:"Attendance rate",k_ath:"Enrolled athletes",k_staff:"Active staff",
+  s2:"2. Progress by workstream",th_dom:"Workstream",th_n:"Actions",th_prog:"Progress",th_done:"Completed",th_ip:"In progress",th_ns:"Not started",th_bl:"Blocked",th_late:"Overdue",
+  s3:"3. Achievements in the period",s4:"4. Actions in progress",s5:"5. Delays and blockers",s6:"6. Deadlines in the next 30 days",
+  s7:"7. PATHWAY programme: athletes by sport and level",s8:"8. Training activity in the period",th_sport:"Sport",th_sched:"Scheduled",th_deliv:"Delivered",th_canc:"Cancelled or postponed",th_hours:"Hours delivered",th_pres:"Attendance",th_rate:"Rate",
+  s9:"9. Resources and points of attention",staffT:"Staff",facT:"Facilities",active:"active",leave:"on leave",recruit:"positions being recruited",avail:"available out of",noCoach:"Groups without an assigned coach",facOff:"Unavailable facilities",conflicts:"Scheduling conflicts detected in the period",until:"until",
+  b_title:"Decisions and milestones",b_dec:"Decisions requested from the CEO",b_ach:"Achieved in the period",b_ms:"Next milestones",b_bl:"Blocked outside the Academy",s10:"10. MAS WSC Consultant comments and recommendations",sig_prep:"Prepared by",sig_ceo:"Approval: Ms. Alanoud Al-Misnad, MAS WSC CEO",none:"Nothing to report for this period.",owner:"Owner",due:"Due",doneOn:"Completed on",total:"Total",groups:"groups",noRate:"not recorded",unassigned:"Unassigned",noArea:"No workstream",mid_src:"Source: MIDAN, coaches' weekly follow-up (weeks reported in the period) and monthly reports (attendance).",th_plh:"Planned hours",th_dlh:"Delivered hours",th_wrep:"Weeks reported",th_compl:"Completion",th_att:"Attendance",ev_title:"Competitions, camps and tests in the period",th_week:"Week of",th_type:"Type",th_event:"Event",th_groups:"Groups",support:"Support requested by coaches",ev_comp:"Competition",ev_camp:"Training camp",ev_test:"Test"}
+};
+const FR_ST={"Not started":"Non démarré","In progress":"En cours","Blocked":"Bloqué","Completed":"Terminé","Overdue":"En retard","Under maintenance":"En maintenance","Unavailable":"Non disponible","Partly available":"Partiellement disponible","Available":"Disponible","High":"Haute","Medium":"Moyenne","Low":"Basse","All sports":"Tous sports","Athletics":"Athlétisme","Fencing":"Escrime"};
+
+function periodRange(){
+  const r=S.rp,t=today(),d=new Date();
+  if(r.period==="week"){const w=weekStart(t);return [w,addDays(w,6)]}
+  if(r.period==="lastweek"){const w=addDays(weekStart(t),-7);return [w,addDays(w,6)]}
+  if(r.period==="month")return [iso(new Date(d.getFullYear(),d.getMonth(),1)),iso(new Date(d.getFullYear(),d.getMonth()+1,0))];
+  if(r.period==="lastmonth")return [iso(new Date(d.getFullYear(),d.getMonth()-1,1)),iso(new Date(d.getFullYear(),d.getMonth(),0))];
+  let a=r.from||t,b=r.to||t;if(b<a)[a,b]=[b,a];return [a,b];
+}
+
+function reportModel(from,to){
+  const T=S.tasks,t0=today();
+  const own=id=>staffName(id)||"";
+  const brief=t=>({title:t.title||"",area:t.area||"",owner:own(t.ownerId),due:t.due||"",progress:t.progress,status:eff(t),doneAt:t.doneAt||(t._at||"").slice(0,10)});
+  const areas=[...new Set([...cfg().areas,...T.map(t=>t.area||"")])];
+  const domains=areas.map(a=>{const l=T.filter(t=>(t.area||"")===a);return l.length?{name:a,n:l.length,avg:avgProg(l),done:l.filter(t=>t.status==="Completed").length,ip:l.filter(t=>t.status==="In progress").length,ns:l.filter(t=>t.status==="Not started").length,bl:l.filter(t=>t.status==="Blocked").length,late:l.filter(isLate).length}:null}).filter(Boolean);
+  const sess=S.sessions.filter(s=>s.date>=from&&s.date<=to);
+  let rn=0,rd=0;
+  const sports=[...cfg().sports,"All sports"].map(sp=>{const l=sess.filter(s=>(s.sport||"All sports")===sp);if(!l.length)return null;
+    const dn=l.filter(s=>s.status==="Delivered");let pn=0,pd=0;
+    for(const s of dn){const g=s.groupId&&byId("groups",s.groupId);if(s.present!=null&&s.present!==""&&g&&Number(g.athletes)>0){pn+=Number(s.present);pd+=Number(g.athletes)}}
+    rn+=pn;rd+=pd;
+    return {sport:sp,sched:l.length,done:dn.length,canc:l.filter(s=>s.status==="Cancelled"||s.status==="Postponed").length,
+      hours:Math.round(dn.reduce((n,s)=>n+(mins(s.end)-mins(s.start)||0),0)/6)/10,pres:dn.reduce((n,s)=>n+(Number(s.present)||0),0),rate:pd?Math.round(pn/pd*100):null}}).filter(Boolean);
+  const {sports:SP,levels:LV}=cfg();
+  const cells=SP.map(sp=>LV.map(lv=>S.groups.filter(g=>g.sport===sp&&g.level===lv).reduce((n,g)=>n+(Number(g.athletes)||0),0)));
+  const inMatrix=S.groups.filter(g=>SP.includes(g.sport)&&LV.includes(g.level));
+  const bl=k=>String(S.brief[k]||"").split("\n").map(x=>x.trim()).filter(Boolean);
+  return {from,to,generated:t0,author:S.rp.author,comments:S.rp.comments,
+    brief:{decisions:bl("decisions"),achieved:bl("achieved"),milestones:bl("milestones"),blocked:bl("blocked")},
+    global:avgProg(T),total:T.length,
+    counts:{done:T.filter(t=>t.status==="Completed").length,ip:T.filter(t=>t.status==="In progress").length,ns:T.filter(t=>t.status==="Not started").length,bl:T.filter(t=>t.status==="Blocked").length,late:T.filter(isLate).length},
+    domains,
+    achievements:T.filter(t=>t.status==="Completed"&&brief(t).doneAt>=from&&brief(t).doneAt<=to).map(brief),
+    inprogress:T.filter(t=>t.status==="In progress"&&!isLate(t)).sort((a,b)=>b.progress-a.progress).slice(0,20).map(brief),
+    late:T.filter(t=>isLate(t)||t.status==="Blocked").sort((a,b)=>(a.due||"9").localeCompare(b.due||"9")).map(brief),
+    upcoming:T.filter(t=>t.status!=="Completed"&&t.due&&t.due>=t0&&t.due<=addDays(t0,30)).sort((a,b)=>a.due.localeCompare(b.due)).map(brief),
+    pathway:{sports:SP,levels:LV,cells,groups:inMatrix.length,athletes:inMatrix.reduce((n,g)=>n+(Number(g.athletes)||0),0),
+      noCoach:inMatrix.filter(g=>g.status!=="Suspended"&&!g.coachId).map(g=>g.sport+" · "+g.level+(g.name?" · "+g.name:""))},
+    sports,sessTot:{sched:sess.length,done:sess.filter(s=>s.status==="Delivered").length,rate:rd?Math.round(rn/rd*100):null},
+    staff:{total:S.staff.length,active:S.staff.filter(s=>s.status==="Active").length,leave:S.staff.filter(s=>s.status==="On leave").length,recruit:S.staff.filter(s=>s.status==="Recruiting"||s.status==="Recruitment on hold").length},
+    fac:{total:S.facilities.length,avail:S.facilities.filter(f=>f.status==="Available"||f.status==="Partly available").length,
+      off:S.facilities.filter(f=>f.status==="Under maintenance"||f.status==="Unavailable").map(f=>({name:f.name,status:f.status,until:f.until||""}))},
+    conflicts:conflictsFor(sess).list.filter(c=>c.sev==="bad").length,
+    midan:(()=>{const ws=midanOverlap(from,to);if(!ws.length&&!S.midan_events.length)return null;
+      const ms=[...new Set(ws.map(w=>w.month))];const fm=from.slice(0,7),tm=to.slice(0,7);
+      const mo=S.midan_monthly.filter(r=>r.month>=fm&&r.month<=tm);
+      const sp=[...cfg().sports].map(s=>{const a=ws.filter(w=>w.sport===s);if(!a.length)return null;const rep=a.filter(w=>w.reported);
+        const pl=rep.reduce((n,w)=>n+w.wk_sessions_pl,0),ac=rep.reduce((n,w)=>n+w.sessions_ac,0);
+        const att=mo.filter(r=>r.sport===s&&r.attendance_pct!=="").map(r=>Number(r.attendance_pct));
+        return {sport:s,sched:pl,done:ac,hpl:Math.round(rep.reduce((n,w)=>n+w.wk_hours_pl,0)*10)/10,hac:Math.round(rep.reduce((n,w)=>n+w.hours_ac,0)*10)/10,
+          wrep:rep.length,wtot:a.length,compl:pl?Math.round(ac/pl*100):null,att:att.length?Math.round(att.reduce((x,y)=>x+y,0)/att.length):null}}).filter(Boolean);
+      const ev=S.midan_events.filter(e=>e.type!=="rest"&&e.date<=to&&addDays(e.date,6)>=from).sort((a,b)=>a.date.localeCompare(b.date)||a.sport.localeCompare(b.sport))
+        .map(e=>({date:e.date,sport:e.sport,type:e.type,level:e.level,name:e.name,groups:(e.groups||[]).join(", ")}));
+      const support=mo.filter(r=>String(r.support_needed||"").trim()).map(r=>({sport:r.sport,month:r.month,text:r.support_needed}));
+      const atts=sp.filter(x=>x.att!=null);
+      return {sports:sp,events:ev,support,tot:{sched:sp.reduce((n,x)=>n+x.sched,0),done:sp.reduce((n,x)=>n+x.done,0),hpl:Math.round(sp.reduce((n,x)=>n+x.hpl,0)),hac:Math.round(sp.reduce((n,x)=>n+x.hac,0)),att:atts.length?Math.round(atts.reduce((n,x)=>n+x.att,0)/atts.length):null},months:ms};})()};
+}
+
+function renderSheet(m,lang){
+  const L=I18N[lang]||I18N.en,tr=s=>lang==="fr"?(FR_ST[s]||s):s;
+  const fd=d=>d?parse(d).toLocaleDateString(lang==="en"?"en-GB":"fr-FR",{day:"numeric",month:"long",year:"numeric"}):"";
+  const fs=d=>d?parse(d).toLocaleDateString(lang==="en"?"en-GB":"fr-FR",{day:"2-digit",month:"2-digit",year:"numeric"}):"";
+  const stc=s=>({"Completed":"ok","In progress":"run","Blocked":"warn","Overdue":"bad","Not started":"idle"}[s]||"idle");
+  const bar=p=>`<div style="display:flex;align-items:center;gap:6px"><div class="bar2" style="flex:1"><i style="width:${p}%"></i></div><span class="num">${p} %</span></div>`;
+  const none=`<p class="none">${L.none}</p>`;
+  const tlist=(arr,cols)=>arr.length?`<table><thead><tr><th>${lang==="en"?"Action":"Action"}</th><th>${L.th_dom}</th><th>${L.owner}</th>${cols.map(c=>`<th>${c[0]}</th>`).join("")}</tr></thead><tbody>${arr.map(t=>`<tr><td>${esc(t.title)}</td><td>${esc(tr(t.area)||L.noArea)}</td><td>${esc(t.owner||L.unassigned)}</td>${cols.map(c=>`<td>${c[1](t)}</td>`).join("")}</tr>`).join("")}</tbody></table>`:none;
+  const K=(v,l)=>`<div class="k"><b>${v}</b><small>${l}</small></div>`;
+  const P=m.pathway;
+  return `<div class="rp-head"><div class="s">MAS Women's Sports Center · MAS Academy</div><h1>${L.title}</h1><div class="s">${L.to}</div>
+    <div class="meta"><span>${L.period} : ${esc(fd(m.from))} ${lang==="en"?"to":"au"} ${esc(fd(m.to))}</span><span>${L.asof} ${esc(fd(m.generated))}</span></div></div>
+  <div class="rp-block"><h2>${L.s1}</h2><div class="kg">
+    ${K(m.global+" %",L.k_global)}${K(m.achievements.length,L.k_done)}${K(m.counts.ip,L.k_ip)}${K(m.counts.late,L.k_late)}
+    ${(()=>{const md=m.midan&&!m.sessTot.sched&&m.midan.tot.sched?m.midan.tot:null;const sd=md?md.done+" / "+md.sched:m.sessTot.done+" / "+m.sessTot.sched;const rt=md?md.att:m.sessTot.rate;return K(sd,L.k_sess)+K(rt==null?(lang==="en"?"n/a":"n.d."):rt+" %",L.k_rate)})()}${K(P.athletes,L.k_ath)}${K(m.staff.active+" / "+m.staff.total,L.k_staff)}</div>
+    <div style="margin-top:10px">${bar(m.global)}</div></div>
+  ${(()=>{const b=m.brief;if(!b)return "";const parts=[["decisions",L.b_dec],["achieved",L.b_ach],["milestones",L.b_ms],["blocked",L.b_bl]].filter(([k])=>b[k]&&b[k].length);if(!parts.length)return "";return `<div class="rp-block"><h2>${L.b_title}</h2>${parts.map(([k,t])=>`<h3 style="margin:8px 0 4px;font-size:13px">${t}</h3><ul>${b[k].map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`).join("")}</div>`})()}
+  <div class="rp-block"><h2>${L.s2}</h2>${m.domains.length?`<table><thead><tr><th>${L.th_dom}</th><th class="r">${L.th_n}</th><th style="width:150px">${L.th_prog}</th><th class="r">${L.th_done}</th><th class="r">${L.th_ip}</th><th class="r">${L.th_ns}</th><th class="r">${L.th_bl}</th><th class="r">${L.th_late}</th></tr></thead><tbody>
+    ${m.domains.map(d=>`<tr><td>${esc(d.name||L.noArea)}</td><td class="r num">${d.n}</td><td>${bar(d.avg)}</td><td class="r num">${d.done}</td><td class="r num">${d.ip}</td><td class="r num">${d.ns}</td><td class="r num">${d.bl}</td><td class="r num"${d.late?' style="color:var(--bad);font-weight:600"':""}>${d.late}</td></tr>`).join("")}
+    <tr><td><b>${L.total}</b></td><td class="r num"><b>${m.total}</b></td><td>${bar(m.global)}</td><td class="r num">${m.counts.done}</td><td class="r num">${m.counts.ip}</td><td class="r num">${m.counts.ns}</td><td class="r num">${m.counts.bl}</td><td class="r num">${m.counts.late}</td></tr></tbody></table>`:none}</div>
+  <div class="rp-block"><h2>${L.s3}</h2>${tlist(m.achievements,[[L.doneOn,t=>esc(fs(t.doneAt))]])}</div>
+  <div class="rp-block"><h2>${L.s4}</h2>${tlist(m.inprogress,[[L.due,t=>esc(fs(t.due))],[L.th_prog,t=>bar(t.progress)]])}</div>
+  <div class="rp-block"><h2>${L.s5}</h2>${tlist(m.late,[[L.due,t=>esc(fs(t.due))],[L.th_prog,t=>t.progress+" %"],["",t=>`<span class="st ${stc(t.status)}">${esc(tr(t.status))}</span>`]])}</div>
+  <div class="rp-block"><h2>${L.s6}</h2>${tlist(m.upcoming,[[L.due,t=>esc(fs(t.due))],[L.th_prog,t=>t.progress+" %"],["",t=>`<span class="st ${stc(t.status)}">${esc(tr(t.status))}</span>`]])}</div>
+  <div class="rp-block"><h2>${L.s7}</h2><table><thead><tr><th>${L.th_sport}</th>${P.levels.map(l=>`<th class="r">${esc(l)}</th>`).join("")}<th class="r">${L.total}</th></tr></thead><tbody>
+    ${P.sports.map((sp,i)=>`<tr><td>${esc(tr(sp))}</td>${P.cells[i].map(v=>`<td class="r num">${v||"·"}</td>`).join("")}<td class="r num"><b>${P.cells[i].reduce((a,b)=>a+b,0)}</b></td></tr>`).join("")}
+    <tr><td><b>${L.total}</b></td>${P.levels.map((_,j)=>`<td class="r num"><b>${P.cells.reduce((n,r)=>n+r[j],0)}</b></td>`).join("")}<td class="r num"><b>${P.athletes}</b></td></tr></tbody></table>
+    <p style="margin:6px 0 0;color:var(--muted);font-size:11px">${P.groups} ${L.groups}</p></div>
+  <div class="rp-block"><h2>${L.s8}</h2>${m.sports.length?`<table><thead><tr><th>${L.th_sport}</th><th class="r">${L.th_sched}</th><th class="r">${L.th_deliv}</th><th class="r">${L.th_canc}</th><th class="r">${L.th_hours}</th><th class="r">${L.th_pres}</th><th class="r">${L.th_rate}</th></tr></thead><tbody>
+    ${m.sports.map(s=>`<tr><td>${esc(tr(s.sport))}</td><td class="r num">${s.sched}</td><td class="r num">${s.done}</td><td class="r num">${s.canc}</td><td class="r num">${s.hours}</td><td class="r num">${s.pres}</td><td class="r num">${s.rate==null?L.noRate:s.rate+" %"}</td></tr>`).join("")}</tbody></table>`:(m.midan&&m.midan.sports.length?`<table><thead><tr><th>${L.th_sport}</th><th class="r">${L.th_sched}</th><th class="r">${L.th_deliv}</th><th class="r">${L.th_plh}</th><th class="r">${L.th_dlh}</th><th class="r">${L.th_wrep}</th><th class="r">${L.th_compl}</th><th class="r">${L.th_att}</th></tr></thead><tbody>
+    ${m.midan.sports.map(s=>`<tr><td>${esc(tr(s.sport))}</td><td class="r num">${s.sched}</td><td class="r num">${s.done}</td><td class="r num">${s.hpl}</td><td class="r num">${s.hac}</td><td class="r num">${s.wrep} / ${s.wtot}</td><td class="r num">${s.compl==null?L.noRate:s.compl+" %"}</td><td class="r num">${s.att==null?L.noRate:s.att+" %"}</td></tr>`).join("")}
+    <tr><td><b>${L.total}</b></td><td class="r num"><b>${m.midan.tot.sched}</b></td><td class="r num"><b>${m.midan.tot.done}</b></td><td class="r num"><b>${m.midan.tot.hpl}</b></td><td class="r num"><b>${m.midan.tot.hac}</b></td><td></td><td></td><td class="r num"><b>${m.midan.tot.att==null?"":m.midan.tot.att+" %"}</b></td></tr></tbody></table>
+    <p style="margin:6px 0 0;color:var(--muted);font-size:11px">${L.mid_src}</p>`:none)}
+    ${m.midan&&m.midan.events.length?`<h2 style="margin-top:14px">${L.ev_title}</h2><table><thead><tr><th>${L.th_week}</th><th>${L.th_sport}</th><th>${L.th_type}</th><th>${L.th_event}</th><th>${L.th_groups}</th></tr></thead><tbody>
+    ${m.midan.events.map(e=>`<tr><td class="num">${esc(fs(e.date))}</td><td>${esc(tr(e.sport))}</td><td>${esc(L["ev_"+e.type]||e.type)}${e.level?" "+esc(e.level):""}</td><td>${esc(e.name)}</td><td>${esc(e.groups)}</td></tr>`).join("")}</tbody></table>`:""}</div>
+  <div class="rp-block"><h2>${L.s9}</h2><ul>
+    <li><b>${L.staffT} :</b> ${m.staff.active} ${L.active}, ${m.staff.leave} ${L.leave}, ${m.staff.recruit} ${L.recruit}.</li>
+    <li><b>${L.facT} :</b> ${m.fac.avail} ${L.avail} ${m.fac.total}.${m.fac.off.length?` ${L.facOff} : ${m.fac.off.map(f=>esc(f.name)+" ("+esc(tr(f.status))+(f.until?", "+L.until+" "+esc(fs(f.until)):"")+")").join(" ; ")}.`:""}</li>
+    ${P.noCoach.length?`<li><b>${L.noCoach} :</b> ${P.noCoach.map(esc).join(" ; ")}.</li>`:""}
+    ${m.conflicts?`<li><b>${L.conflicts} :</b> ${m.conflicts}.</li>`:""}
+    ${m.midan&&m.midan.support&&m.midan.support.length?`<li><b>${L.support} :</b><ul>${m.midan.support.map(x=>`<li><b>${esc(tr(x.sport))}</b> (${esc(lang==="fr"?x.month:monthLabel(x.month))}) : ${esc(x.text)}</li>`).join("")}</ul></li>`:""}</ul></div>
+  <div class="rp-block"><h2>${L.s10}</h2>${m.comments?`<p class="free">${esc(m.comments)}</p>`:""}${'<div class="lines"></div>'.repeat(m.comments?4:8)}
+    <div class="sig"><div>${L.sig_prep} : ${esc(m.author||"")}</div><div>${L.sig_ceo}</div></div></div>`;
+}
+
+V.report=()=>{
+  const r=S.rp,arch=S.reports.slice().sort((a,b)=>(b._at||"").localeCompare(a._at||""));
+  const viewing=r.view&&arch.find(x=>x.id===r.view);
+  const [from,to]=periodRange();
+  const lang=viewing?(viewing.lang||"en"):r.lang;
+  const model=viewing?viewing.model:reportModel(from,to);
+  S.rpCurrent={model,lang};
+  return `${roNote()}
+  <div class="bar"><div><div class="eyebrow">Reporting to management</div><h2>CEO report</h2></div>
+    <div class="grp"><button class="primary" data-pdf="1">Export to PDF</button>${!viewing&&writable()?`<button data-arch="1">Archive this report</button>`:""}</div></div>
+  ${viewing?`<div class="ro-note">You are viewing the report archived on ${esc(fmtDay((viewing._at||"").slice(0,10)))} (period ${esc(fmtDay(model.from))} to ${esc(fmtDay(model.to))}), as it stood on that date. <button data-rlive="1">Back to the live report</button></div>`
+  :`<div class="panel"><div class="report-tools">
+    <label for="rpPeriod">Period<select id="rpPeriod">${opts([{v:"week",l:"This week"},{v:"lastweek",l:"Last week"},{v:"month",l:"This month"},{v:"lastmonth",l:"Last month"},{v:"custom",l:"Custom"}],r.period)}</select></label>
+    ${r.period==="custom"?`<label for="rpFrom">From<input type="date" id="rpFrom" value="${esc(r.from||from)}"></label><label for="rpTo">To<input type="date" id="rpTo" value="${esc(r.to||to)}"></label>`:""}
+    <label for="rpLang">Report language<select id="rpLang">${opts([{v:"en",l:"English"},{v:"fr",l:"Français"}],r.lang)}</select></label>
+    <label for="rpAuthor" style="flex:1;min-width:220px">Prepared by<input id="rpAuthor" value="${esc(r.author)}"></label></div>
+    <label for="rpComments" class="tot" style="display:flex;flex-direction:column;gap:4px;font-weight:600">Comments (optional; the section keeps blank lines for your handwritten recommendations)<textarea id="rpComments" placeholder="Leave empty for a fully blank section">${esc(r.comments)}</textarea></label>
+    <div class="eyebrow" style="margin-top:6px">Decisions and milestones (shown after the executive summary, one item per line)</div>
+    <div class="fields">
+      <label for="bDec">Decisions requested from the CEO<textarea id="bDec"${writable()?"":" disabled"}>${esc(S.brief.decisions)}</textarea></label>
+      <label for="bAch">Achieved in the period<textarea id="bAch"${writable()?"":" disabled"}>${esc(S.brief.achieved)}</textarea></label>
+      <label for="bMs">Next milestones<textarea id="bMs"${writable()?"":" disabled"}>${esc(S.brief.milestones)}</textarea></label>
+      <label for="bBl">Blocked outside the Academy<textarea id="bBl"${writable()?"":" disabled"}>${esc(S.brief.blocked)}</textarea></label>
+    </div>
+    ${writable()?`<div><button class="primary" data-bsave="1">Save decisions and milestones</button></div>`:""}
+    <p class="tot" style="margin:0">The report is calculated live from the tool's data. Share this page with the CEO as view-only; direct link to this tab: page address followed by #report.</p></div>`}
+  <div class="sheet-wrap"><div class="sheet" id="sheet">${renderSheet(model,lang)}</div></div>
+  <section style="display:flex;flex-direction:column;gap:8px"><h3>Archived reports</h3>
+  ${arch.length?`<div class="scroll"><table><thead><tr><th>Archived on</th><th>Period</th><th>Language</th><th class="r">Overall progress</th><th class="r">Change</th><th class="r">Completed in period</th><th class="r">Overdue</th><th></th></tr></thead><tbody>
+    ${arch.map((a,i)=>{const prev=arch[i+1];const g=a.model?a.model.global:0;const dlt=prev&&prev.model?g-prev.model.global:null;
+      return `<tr${a.id===r.view?' style="background:var(--accent-soft)"':""}><td>${esc(fmtDay((a._at||"").slice(0,10)))}</td><td>${esc(fmtDay(a.model.from))} to ${esc(fmtDay(a.model.to))}</td><td>${a.lang==="fr"?"FR":"EN"}</td><td class="r num">${g} %</td>
+      <td class="r num" style="color:${dlt>0?"var(--ok)":dlt<0?"var(--bad)":"var(--muted)"}">${dlt==null?"":(dlt>0?"+":"")+dlt+" pts"}</td><td class="r num">${a.model.achievements.length}</td><td class="r num">${a.model.counts.late}</td>
+      <td style="white-space:nowrap"><button class="mini" data-rview="${a.id}">Open</button>${writable()?` <button class="mini danger" data-rdel="${a.id}">Delete</button>`:""}</td></tr>`}).join("")}</tbody></table></div>`
+  :`<div class="panel"><div class="empty">No archived reports. Archive each report sent to the CEO to keep a dated record and follow changes from one report to the next.</div></div>`}</section>`;
+};
+
+function loadScript(src){return new Promise((res,rej)=>{if(document.querySelector(`script[src="${src}"]`)&&(src.includes("jspdf")?window.jspdf:window.html2canvas)){res();return}const s=document.createElement("script");s.src=src;s.onload=()=>res();s.onerror=()=>rej(new Error("load"));document.head.appendChild(s)})}
+async function exportPdf(btn){
+  const sheet=document.getElementById("sheet");if(!sheet)return;
+  const label=btn.textContent;btn.disabled=true;btn.textContent="Preparing PDF…";
+  try{
+    await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
+    await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+    if(document.fonts&&document.fonts.ready)await document.fonts.ready;
+    const {jsPDF}=window.jspdf;const pdf=new jsPDF({unit:"mm",format:"a4",compress:true});
+    const W=210,H=297,M=12,FOOT=10;let y=0;
+    for(const b of sheet.children){
+      const c=await window.html2canvas(b,{scale:2,backgroundColor:"#ffffff",logging:false});
+      const ratio=W/c.width;let hmm=c.height*ratio;
+      if(y+hmm>H-FOOT&&y>M){pdf.addPage();y=M}
+      if(hmm<=H-FOOT-y){pdf.addImage(c.toDataURL("image/jpeg",0.92),"JPEG",0,y,W,hmm);y+=hmm;continue}
+      let sy=0;
+      while(sy<c.height){const avail=(H-FOOT-y)/ratio;const sh=Math.min(avail,c.height-sy);
+        const part=document.createElement("canvas");part.width=c.width;part.height=sh;part.getContext("2d").drawImage(c,0,sy,c.width,sh,0,0,c.width,sh);
+        pdf.addImage(part.toDataURL("image/jpeg",0.92),"JPEG",0,y,W,sh*ratio);sy+=sh;y+=sh*ratio;
+        if(sy<c.height){pdf.addPage();y=M}}
+    }
+    const n=pdf.getNumberOfPages(),m=S.rpCurrent.model,en=S.rpCurrent.lang!=="fr";
+    for(let i=1;i<=n;i++){pdf.setPage(i);pdf.setFontSize(8);pdf.setTextColor(110);pdf.text(`MAS Academy · ${en?"Progress Report":"Rapport d'avancement"} · ${m.from} / ${m.to} · ${i}/${n}`,W/2,H-5,{align:"center"})}
+    const blob=pdf.output("blob");
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    const filename=`MAS_Academy_${en?"Report":"Rapport"}_${m.from}_${m.to}.pdf`;
+    a.href=url;a.download=filename;a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+    toast("PDF ready");
+  }catch(e){toast(e&&e.message==="load"?"The PDF module could not load. Check the connection and try again.":"PDF export is not possible right now.")}
+  finally{btn.disabled=false;btn.textContent=label}
+}
+async function archiveReport(){
+  if(!writable()||!S.rpCurrent)return;
+  const row={id:uuid4(),model:S.rpCurrent.model,lang:S.rpCurrent.lang,date:today(),period:S.rpCurrent.model.from+"/"+S.rpCurrent.model.to,content:S.rpCurrent.model,_at:new Date().toISOString(),_by:S.email||S.uid||null};
+  try{const{error}=await sb.from("mas_reports").insert(row);if(error)throw error;toast("Report archived")}catch(e){writeErr(e)}
+}
+
+V.settings=()=>{
+  const c=cfg(),dis=writable()?"":" disabled";
+  return `${roNote()}
+  <div><div class="eyebrow">Reference lists used throughout the tool</div><h2>Settings</h2></div>
+  <form class="panel" id="cfgForm"><div class="fields">
+    <label for="c_season">Season<input id="c_season" name="season" value="${esc(c.season)}"${dis}></label><span></span>
+    <label for="c_sports">Sports (one per line)<textarea id="c_sports" name="sports"${dis}>${esc(c.sports.join("\n"))}</textarea></label>
+    <label for="c_levels">PATHWAY levels, first to last<textarea id="c_levels" name="levels"${dis}>${esc(c.levels.join("\n"))}</textarea></label>
+    <label for="c_teams">Staff departments<textarea id="c_teams" name="teams"${dis}>${esc(c.teams.join("\n"))}</textarea></label>
+    <label for="c_areas">Action workstreams<textarea id="c_areas" name="areas"${dis}>${esc(c.areas.join("\n"))}</textarea></label>
+  </div>
+  <p class="tot" style="margin:0">Renaming a sport or level does not update existing records: the affected groups will appear under "Groups outside the matrix" until corrected.</p>
+  ${writable()?`<div><button class="primary" type="submit">Save settings</button></div>`:""}</form>`;
+};
+
+/* ---------- rendering ---------- */
+function renderTabs(){
+  const late=lateTasks().length;const confToday=conflictsFor(S.sessions.filter(s=>s.date===today())).list.length;
+  document.getElementById("tabs").innerHTML=TABS.map(([k,l])=>{
+    let n="";if(k==="today"&&confToday)n=confToday;if(k==="actions"&&late)n=late;
+    return `<a href="#${k}" data-tab="${k}"${S.tab===k?' aria-current="page"':""}>${esc(l)}${n?`<span class="n">${n}</span>`:""}</a>`}).join("");
+  document.getElementById("season").textContent="Season "+cfg().season;
+}
+function render(){
+  renderTabs();
+  const v=document.getElementById("view");
+  const scrollY=window.scrollY;
+  const pending=S.dbReady&&COLS.some(c=>!S.loaded[c]);
+  const ae=document.activeElement,aid=ae&&ae.id&&v.contains(ae)?ae.id:null;let ss=null,se=null;try{ss=ae.selectionStart;se=ae.selectionEnd}catch(e){}
+  if(!S.gs)S.gs=addDays(weekStart(today()),-28);
+  v.innerHTML=(pending?`<p class="loading">Syncing data…</p>`:"")+V[S.tab]();
+  if(aid){const el=document.getElementById(aid);if(el){el.focus({preventScroll:true});try{if(ss!=null)el.setSelectionRange(ss,se)}catch(e){}}}
+  window.scrollTo(0,scrollY);
+}
+function setTab(t){if(!V[t])t="today";S.tab=t;LS.set("mas.tab",t);render()}
+
+/* ---------- events ---------- */
+document.getElementById("tabs").addEventListener("click",e=>{const a=e.target.closest("[data-tab]");if(!a)return;e.preventDefault();setTab(a.dataset.tab);try{history.replaceState(null,"","#"+a.dataset.tab)}catch(_){}});
+const view=document.getElementById("view");
+view.addEventListener("click",e=>{
+  const t=e.target;
+  if(t.closest("select,input:not([type=file]),label,[data-stop] select"))return;
+  if(t.closest("[data-midan-import]")){const fi=document.getElementById("midanFile");if(fi)fi.click();return}
+  const add=t.closest("[data-add]");if(add){openForm(add.dataset.add,null,add.dataset.preset?JSON.parse(add.dataset.preset):null);return}
+  const ed=t.closest("[data-edit]");if(ed){openForm(ed.dataset.edit,ed.dataset.id);return}
+  const q=t.closest("[data-quick]");if(q){patch("sessions",q.dataset.id,{status:q.dataset.quick});return}
+  const dd=t.closest("[data-day]");if(dd){const n=+dd.dataset.day;S.day=n===0?today():addDays(S.day,n);render();return}
+  const wk=t.closest("[data-week]");if(wk){const n=+wk.dataset.week;S.week=n===0?weekStart(today()):addDays(S.week,n);render();return}
+  const ex=t.closest("[data-export]");if(ex){exportCsv(ex.dataset.export);return}
+  const av=t.closest("[data-av]");if(av){S.av=av.dataset.av;LS.set("mas.av",S.av);render();return}
+  const gs=t.closest("[data-gs]");if(gs){const n=+gs.dataset.gs;S.gs=n===0?addDays(weekStart(today()),-28):addDays(S.gs,n);render();return}
+  const pdfb=t.closest("[data-pdf]");if(pdfb){exportPdf(pdfb);return}
+  if(t.closest("[data-arch]")){archiveReport();return}
+  if(t.closest("[data-bsave]")){if(!writable())return;
+    sb.from("mas_config").upsert({id:"brief",data:{decisions:S.brief.decisions||"",achieved:S.brief.achieved||"",milestones:S.brief.milestones||"",blocked:S.brief.blocked||""},_at:new Date().toISOString(),_by:S.email||S.uid||null},{onConflict:"id"}).then(({error})=>error?writeErr(error):toast("Decisions and milestones saved"));return}
+  const rv=t.closest("[data-rview]");if(rv){S.rp.view=rv.dataset.rview;render();window.scrollTo(0,0);return}
+  if(t.closest("[data-rlive]")){S.rp.view="";render();return}
+  const rd=t.closest("[data-rdel]");if(rd){if(!rd.classList.contains("armed")){rd.classList.add("armed");rd.textContent="Confirm";return}if(S.rp.view===rd.dataset.rdel)S.rp.view="";remove("reports",rd.dataset.rdel);return}
+  const cw=t.closest("#copyWeek");if(cw){
+    if(!cw.classList.contains("armed")){cw.classList.add("armed","danger");cw.textContent="Confirm copy";return}
+    copyWeek();return}
+});
+view.addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.matches("[role=button][data-edit]")){e.preventDefault();openForm(e.target.dataset.edit,e.target.dataset.id)}});
+view.addEventListener("change",e=>{
+  const t=e.target;
+  if(t.id==="dayPick"&&t.value){S.day=t.value;render();return}
+  if(t.id==="midanFile"&&t.files&&t.files[0]){importMidan(t.files[0]);t.value="";return}
+  const map={fpsport:"psport",fpfac:"pfac",fpstaff:"pstaff",fsteam:"steam",fsstat:"sstat",ftarea:"tarea",ftowner:"towner",fsmonth:"smonth"};
+  if(map[t.id]){S.f[map[t.id]]=t.value;render();return}
+  if(t.id==="ftdone"){S.f.tdone=t.checked;LS.set("mas.tdone",t.checked?"1":"0");render();return}
+  if(t.dataset.status){patch(t.dataset.status,t.dataset.id,{status:t.value});return}
+  if(t.dataset.prog){const old=byId("tasks",t.dataset.prog);if(!old)return;const p=Number(t.value);let st=old.status;
+    if(p>=100)st="Completed";else if(p>0&&st==="Not started")st="In progress";else if(st==="Completed")st="In progress";
+    patch("tasks",old.id,{progress:p,status:st});return}
+  if(t.id==="rpPeriod"){S.rp.period=t.value;LS.set("mas.rp.period",t.value);if(t.value==="custom"&&!S.rp.from){const [a,b]=periodRange();S.rp.from=a;S.rp.to=b}render();return}
+  if(t.id==="rpFrom"){S.rp.from=t.value;render();return}
+  if(t.id==="rpTo"){S.rp.to=t.value;render();return}
+  if(t.id==="rpLang"){S.rp.lang=t.value;LS.set("mas.rp.lang",t.value);render();return}
+});
+let rpT;
+view.addEventListener("input",e=>{
+  const t=e.target;const BK={bDec:"decisions",bAch:"achieved",bMs:"milestones",bBl:"blocked"};if(t.id!=="rpComments"&&t.id!=="rpAuthor"&&!BK[t.id])return;
+  if(BK[t.id]){S.brief={...S.brief,[BK[t.id]]:t.value}}else if(t.id==="rpComments"){S.rp.comments=t.value;LS.set("mas.rp.comments",t.value)}else{S.rp.author=t.value;LS.set("mas.rp.author",t.value)}
+  clearTimeout(rpT);rpT=setTimeout(()=>{const sh=document.getElementById("sheet");if(sh&&!S.rp.view){const [a,b]=periodRange();const m=reportModel(a,b);S.rpCurrent={model:m,lang:S.rp.lang};sh.innerHTML=renderSheet(m,S.rp.lang)}},250);
+});
+view.addEventListener("submit",async e=>{
+  if(e.target.id!=="cfgForm")return;e.preventDefault();if(!writable())return;
+  const fd=new FormData(e.target),lines=k=>String(fd.get(k)||"").split("\n").map(s=>s.trim()).filter(Boolean);
+  const next={season:String(fd.get("season")||"").trim()||DEFAULT_CONFIG.season,sports:lines("sports"),levels:lines("levels"),teams:lines("teams"),areas:lines("areas")};
+  for(const k of ["sports","levels","teams","areas"])if(!next[k].length){toast("Each list must contain at least one entry.");return}
+  try{const row={id:"main",...next,_at:new Date().toISOString(),_by:S.email||S.uid||null};const{error}=await sb.from("mas_config").upsert(row,{onConflict:"id"});if(error)throw error;toast("Settings saved")}catch(err){writeErr(err)}
+});
+
+async function copyWeek(){
+  if(!writable())return;
+  const ws=S.week,we=addDays(ws,6);
+  const src=S.sessions.filter(s=>s.date>=ws&&s.date<=we&&s.status!=="Cancelled");
+  if(!src.length){toast("No sessions to copy this week.");return}
+  let n=0;
+  try{
+    for(const s of src){
+      const r={...s};delete r.id;r.date=addDays(s.date,7);r.status="Scheduled";r.present=null;
+      const row={id:uuid4(),...toRow("sessions",r),_at:new Date().toISOString(),_by:S.email||S.uid||null};
+      const{error}=await sb.from("mas_sessions").insert(row);
+      if(error)throw error;
+      n++;
+    }
+    S.week=addDays(ws,7);toast(n+" session(s) copied to next week");render();
+  }catch(e){writeErr(e)}
+}
+
+function csv(rows){return "﻿"+rows.map(r=>r.map(v=>{const s=String(v??"");return /[";\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}).join(";")).join("\r\n")}
+function exportCsv(k){
+  let rows,name;
+  if(k==="sessions"){const we=addDays(S.week,6);name=`sessions_${S.week}.csv`;rows=[["Date","Start","End","Type","Sport","Level","Group","Facility","Lead","Status","Attended","Notes"],
+    ...S.sessions.filter(s=>s.date>=S.week&&s.date<=we).sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start)).map(s=>[s.date,s.start,s.end,s.type,s.sport,s.level,(byId("groups",s.groupId)||{}).name,facName(s.facilityId),staffName(s.staffId),s.status,s.present,s.notes])]}
+  if(k==="staff"){name="staff.csv";rows=[["Name","Position","Department","Sport","Status","Start date","Contact","Notes"],...S.staff.map(s=>[s.name,s.role,s.team,s.sport,s.status,s.start,s.contact,s.notes])]}
+  if(k==="facilities"){name="facilities.csv";rows=[["Facility","Type","Sports","Capacity","Opens","Closes","Availability","Unavailable until","Notes"],...S.facilities.map(f=>[f.name,f.type,f.sports,f.capacity,f.open,f.close,f.status,f.until,f.notes])]}
+  if(k==="groups"){name="pathway_groups.csv";rows=[["Sport","Level","Group","Status","Athletes","Target size","Head coach","Assistant","Sessions/wk","Ages","Notes"],...S.groups.map(g=>[g.sport,g.level,g.name,g.status,g.athletes,g.target,staffName(g.coachId),staffName(g.assistantId),g.perWeek,g.ages,g.notes])]}
+  if(k==="tasks"){name="actions.csv";rows=[["Action","Workstream","Sport","Owner","Start","Due","Priority","Status","Effective status","Progress %","Completed on","Notes"],...S.tasks.map(t=>[t.title,t.area,t.sport,staffName(t.ownerId),t.start,t.due,t.priority,t.status,eff(t),t.progress,t.doneAt,t.notes])]}
+  if(!rows)return;
+  try{
+    const blob=new Blob([csv(rows)],{type:"text/csv;charset=utf-8"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");a.href=url;a.download=name;a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+  }catch(e){toast("Export not possible right now.")}
+}
+
+/* ---------- start-up ---------- */
+const h=(location.hash||"").slice(1);S.tab=V[h]?h:(V[LS.get("mas.tab")]?LS.get("mas.tab"):"today");
+render();
+
+/* Map col name → Supabase table name for COLS subscriptions */
+const COL_TO_TBL={staff:"mas_staff",facilities:"mas_facilities",sessions:"mas_sessions",groups:"mas_groups",tasks:"mas_tasks",reports:"mas_reports",midan_weeks:"mas_midan_weeks",midan_events:"mas_midan_events",midan_monthly:"mas_midan_monthly"};
+
+async function loadAllData(){
+  /* Load config */
+  try{
+    const{data:cfgRow}=await sb.from("mas_config").select("*").eq("id","main").single();
+    if(cfgRow){S.config={...DEFAULT_CONFIG,...Object.fromEntries(Object.entries(cfgRow).filter(([k,v])=>Array.isArray(v)?v.length:v&&!["id","_at","_by"].includes(k)))}}
+  }catch(e){}
+  /* Load brief */
+  try{
+    const{data:briefRow}=await sb.from("mas_config").select("*").eq("id","brief").single();
+    if(briefRow){const d=briefRow.data||{};S.brief={decisions:d.decisions||"",achieved:d.achieved||"",milestones:d.milestones||"",blocked:d.blocked||""}}
+  }catch(e){}
+  /* Load midan meta */
+  try{
+    const{data:metaRow}=await sb.from("mas_config").select("*").eq("id","midan_meta").single();
+    S.midan_meta=metaRow?metaRow.data:null;
+  }catch(e){}
+  /* Load all collections */
+  for(const c of COLS){
+    const tbl=COL_TO_TBL[c];if(!tbl)continue;
+    try{
+      const{data,error}=await sb.from(tbl).select("*");
+      if(!error&&data){
+        S[c]=data.map(row=>({...fromRow(c,row)}));
+        if(c==="tasks")S[c]=S[c].map(normTask);
+        S.loaded[c]=true;
+      }
+    }catch(e){console.warn("Load error",c,e)}
+  }
+  render();
+}
+
+function subscribeRealtime(){
+  /* Subscribe to changes in each table */
+  for(const c of COLS){
+    const tbl=COL_TO_TBL[c];if(!tbl)continue;
+    sb.channel("mas:"+tbl)
+      .on("postgres_changes",{event:"*",schema:"public",table:tbl},async()=>{
+        /* Reload entire collection on any change */
+        try{
+          const{data,error}=await sb.from(tbl).select("*");
+          if(!error&&data){
+            S[c]=data.map(row=>fromRow(c,row));
+            if(c==="tasks")S[c]=S[c].map(normTask);
+            S.loaded[c]=true;
+            render();
+          }
+        }catch(e){}
+      })
+      .subscribe();
+  }
+  /* Subscribe to mas_config for config/brief/midan_meta */
+  sb.channel("mas:mas_config")
+    .on("postgres_changes",{event:"*",schema:"public",table:"mas_config"},async({new:row})=>{
+      if(!row)return;
+      if(row.id==="main"){S.config={...DEFAULT_CONFIG,...Object.fromEntries(Object.entries(row).filter(([k,v])=>Array.isArray(v)?v.length:v&&!["id","_at","_by"].includes(k)))};render();}
+      if(row.id==="brief"){const d=row.data||{};S.brief={decisions:d.decisions||"",achieved:d.achieved||"",milestones:d.milestones||"",blocked:d.blocked||""};const a=document.activeElement;if(a&&/^b(Dec|Ach|Ms|Bl)$/.test(a.id))return;render();}
+      if(row.id==="midan_meta"){S.midan_meta=row.data||null;render();}
+    })
+    .subscribe();
+}
+
+/* Login dialog */
+const loginDlg=document.getElementById("loginDlg");
+const loginForm=document.getElementById("loginForm");
+loginForm.addEventListener("submit",async e=>{
+  e.preventDefault();
+  const btn=document.getElementById("loginBtn");
+  const errEl=document.getElementById("loginErr");
+  const email=document.getElementById("loginEmail").value.trim();
+  const pwd=document.getElementById("loginPwd").value;
+  btn.disabled=true;btn.textContent="Signing in…";errEl.style.display="none";
+  const{data,error}=await sb.auth.signInWithPassword({email,password:pwd});
+  if(error){errEl.textContent=error.message;errEl.style.display="block";btn.disabled=false;btn.textContent="Sign in";return}
+  loginDlg.close();
+});
+
+(async()=>{
+  /* Check existing session */
+  const{data:{session}}=await sb.auth.getSession();
+  if(session){
+    S.uid=session.user.id;S.email=session.user.email;
+    S.dbReady=true;
+    document.getElementById("mode").textContent=S.email+" · editing";
+    await loadAllData();
+    subscribeRealtime();
+  } else {
+    document.getElementById("mode").textContent="Not signed in";
+    loginDlg.showModal();
+  }
+  /* Listen to auth changes */
+  sb.auth.onAuthStateChange(async(event,session)=>{
+    if(session){
+      S.uid=session.user.id;S.email=session.user.email;
+      S.dbReady=true;
+      document.getElementById("mode").textContent=S.email+" · editing";
+      await loadAllData();
+      subscribeRealtime();
+    } else {
+      S.uid=null;S.email="";S.dbReady=false;
+      document.getElementById("mode").textContent="Not signed in";
+      render();
+      if(!loginDlg.open)loginDlg.showModal();
+    }
+  });
+})();
+})();
+</script>
+
+</body></html>
