@@ -202,7 +202,7 @@ form.add input[name=title]{flex:1 1 200px}
 </main>
 <datalist id="sectorlist"></datalist>
 <div id="tip" hidden></div>
-<div id="login" hidden><form id="loginForm"><h2>Consultant Register</h2><span class="small">Sign in to open your register.</span><label for="lgEmail">Email<input id="lgEmail" type="email" autocomplete="username" required></label><label for="lgPass">Password<input id="lgPass" type="password" autocomplete="current-password" required></label><div class="err" id="lgErr"></div><button class="primary" id="lgBtn">Sign in</button></form></div>
+<div id="login" hidden><form id="loginForm"><h2>Consultant Register</h2><span class="small">Sign in to open your register.</span><label for="lgEmail">Email<input id="lgEmail" type="email" autocomplete="username" required></label><label for="lgPass">Password<input id="lgPass" type="password" autocomplete="current-password" required></label><div class="err" id="lgErr"></div><button class="primary" id="lgBtn">Sign in</button><div id="lgForgot" style="text-align:center;margin-top:4px"><button type="button" id="forgotBtn" style="background:none;border:none;color:var(--brand);font:inherit;font-size:.84rem;cursor:pointer;text-decoration:underline;padding:2px">Forgot password?</button></div><div class="err" id="lgResetMsg" style="color:var(--good-ink)"></div></form></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
 <script>
@@ -606,6 +606,15 @@ $("#loginForm").addEventListener("submit",async e=>{
   startApp();
 },true);
 $("#outBtn").addEventListener("click",async()=>{try{await sb.auth.signOut()}catch(e){}location.reload()});
+$("#forgotBtn").addEventListener("click",async()=>{
+  const email=$("#lgEmail").value.trim();
+  if(!email){$("#lgErr").textContent="Enter your email address first.";return}
+  $("#forgotBtn").disabled=true;$("#lgResetMsg").textContent="";$("#lgErr").textContent="";
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.href});
+  $("#forgotBtn").disabled=false;
+  if(error){$("#lgErr").textContent="Could not send reset email: "+error.message;return}
+  $("#lgResetMsg").textContent="✓ Reset email sent — check your inbox.";
+});
 $("#fsBtn").addEventListener("click",()=>{try{if(document.fullscreenElement)document.exitFullscreen();else document.documentElement.requestFullscreen().catch(()=>note("Full screen is not available in this browser."))}catch(e){note("Full screen is not available in this browser.")}});
 document.addEventListener("fullscreenchange",()=>{$("#fsBtn").textContent=document.fullscreenElement?"Exit full screen":"Full screen"});
 (async()=>{
